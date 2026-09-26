@@ -10,7 +10,11 @@ into eval cases that are pinned to a point in time. It then drops the pi coding 
 repo as it was at that date and measures which memory design helps. Every memory lookup is
 bounded by the cutoff **inside Atlas**, so the agent can never see the future.
 
-MongoDB Hackathon NYC · Sept 26, 2026 · Problem statement 2: Long Horizon Engineering.
+MongoDB Hackathon NYC · Sept 26, 2026 · Problem statements 2 (Long Horizon Engineering) and 1
+(Recursive Harnessing).
+
+**Browse the results:** https://hindsight-xi-two.vercel.app (a read-only snapshot: every case, run
+trace, leaderboard and tuning step; raw chat text isn't published and live runs need the local harness).
 
 ## Results (pilot)
 
