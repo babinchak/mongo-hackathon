@@ -1,0 +1,272 @@
+[
+ {
+  "config_id": "repo_only",
+  "label": "Repo only (no memory)",
+  "n_cases": 6,
+  "n_runs": 36,
+  "pass_at_1": 0.083,
+  "pass_pow_3": 0,
+  "evidence_recall": null,
+  "memory_tool_use": null,
+  "cost_usd_per_run": 0.0355,
+  "by_scenario": {
+   "durable_constraint": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0,
+    "pass_pow_3": 0
+   },
+   "superseded_decision": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.083,
+    "pass_pow_3": 0
+   },
+   "failed_approach": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.167,
+    "pass_pow_3": 0
+   }
+  },
+  "by_horizon": {
+   "7": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.111,
+    "pass_pow_3": 0
+   },
+   "30": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.056,
+    "pass_pow_3": 0
+   }
+  }
+ },
+ {
+  "config_id": "vector_turns",
+  "label": "Vector · turns",
+  "n_cases": 6,
+  "n_runs": 36,
+  "pass_at_1": 0.194,
+  "pass_pow_3": 0,
+  "evidence_recall": 0.194,
+  "memory_tool_use": 0.833,
+  "cost_usd_per_run": 0.0439,
+  "by_scenario": {
+   "durable_constraint": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.417,
+    "pass_pow_3": 0
+   },
+   "superseded_decision": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.083,
+    "pass_pow_3": 0
+   },
+   "failed_approach": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.083,
+    "pass_pow_3": 0
+   }
+  },
+  "by_horizon": {
+   "7": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.222,
+    "pass_pow_3": 0
+   },
+   "30": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.167,
+    "pass_pow_3": 0
+   }
+  }
+ },
+ {
+  "config_id": "hybrid_turns",
+  "label": "Hybrid · turns",
+  "n_cases": 6,
+  "n_runs": 36,
+  "pass_at_1": 0.389,
+  "pass_pow_3": 0,
+  "evidence_recall": 0.417,
+  "memory_tool_use": 0.833,
+  "cost_usd_per_run": 0.044,
+  "by_scenario": {
+   "durable_constraint": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.583,
+    "pass_pow_3": 0
+   },
+   "superseded_decision": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.167,
+    "pass_pow_3": 0
+   },
+   "failed_approach": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.417,
+    "pass_pow_3": 0
+   }
+  },
+  "by_horizon": {
+   "7": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.333,
+    "pass_pow_3": 0
+   },
+   "30": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.444,
+    "pass_pow_3": 0
+   }
+  }
+ },
+ {
+  "config_id": "hybrid_all",
+  "label": "Hybrid · moments+turns",
+  "n_cases": 6,
+  "n_runs": 36,
+  "pass_at_1": 0.694,
+  "pass_pow_3": 0.333,
+  "evidence_recall": 0.528,
+  "memory_tool_use": 0.917,
+  "cost_usd_per_run": 0.0443,
+  "by_scenario": {
+   "durable_constraint": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.917,
+    "pass_pow_3": 0.75
+   },
+   "superseded_decision": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.667,
+    "pass_pow_3": 0.25
+   },
+   "failed_approach": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.5,
+    "pass_pow_3": 0
+   }
+  },
+  "by_horizon": {
+   "7": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.778,
+    "pass_pow_3": 0.5
+   },
+   "30": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.611,
+    "pass_pow_3": 0.167
+   }
+  }
+ },
+ {
+  "config_id": "hybrid_all_brief",
+  "label": "Hybrid · moments+turns · briefing",
+  "n_cases": 6,
+  "n_runs": 36,
+  "pass_at_1": 0.806,
+  "pass_pow_3": 0.5,
+  "evidence_recall": 0.833,
+  "memory_tool_use": 0.889,
+  "cost_usd_per_run": 0.044,
+  "by_scenario": {
+   "durable_constraint": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.833,
+    "pass_pow_3": 0.5
+   },
+   "superseded_decision": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.833,
+    "pass_pow_3": 0.5
+   },
+   "failed_approach": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.75,
+    "pass_pow_3": 0.5
+   }
+  },
+  "by_horizon": {
+   "7": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.722,
+    "pass_pow_3": 0.333
+   },
+   "30": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.889,
+    "pass_pow_3": 0.667
+   }
+  }
+ },
+ {
+  "config_id": "ablate_superseded",
+  "label": "Ablation · keep superseded",
+  "n_cases": 6,
+  "n_runs": 36,
+  "pass_at_1": 0.556,
+  "pass_pow_3": 0.333,
+  "evidence_recall": 0.778,
+  "memory_tool_use": 0.833,
+  "cost_usd_per_run": 0.0438,
+  "by_scenario": {
+   "durable_constraint": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.917,
+    "pass_pow_3": 0.75
+   },
+   "superseded_decision": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.167,
+    "pass_pow_3": 0
+   },
+   "failed_approach": {
+    "n_cases": 2,
+    "n_runs": 12,
+    "pass_at_1": 0.583,
+    "pass_pow_3": 0.25
+   }
+  },
+  "by_horizon": {
+   "7": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.611,
+    "pass_pow_3": 0.333
+   },
+   "30": {
+    "n_cases": 6,
+    "n_runs": 18,
+    "pass_at_1": 0.5,
+    "pass_pow_3": 0.333
+   }
+  }
+ }
+]

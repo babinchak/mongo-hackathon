@@ -1,0 +1,62 @@
+[
+ {
+  "_id": "repo_only",
+  "label": "Repo only (no memory)",
+  "memory": false
+ },
+ {
+  "_id": "vector_turns",
+  "label": "Vector · turns",
+  "memory": true,
+  "retrieval": "vector",
+  "source": "turns",
+  "k": 8,
+  "briefing": false,
+  "drop_superseded": false,
+  "recency_weight": 0
+ },
+ {
+  "_id": "hybrid_turns",
+  "label": "Hybrid · turns",
+  "memory": true,
+  "retrieval": "hybrid",
+  "source": "turns",
+  "k": 8,
+  "briefing": false,
+  "drop_superseded": false,
+  "recency_weight": 0
+ },
+ {
+  "_id": "hybrid_all",
+  "label": "Hybrid · moments+turns",
+  "memory": true,
+  "retrieval": "hybrid",
+  "source": "moments+turns",
+  "k": 8,
+  "briefing": false,
+  "drop_superseded": true,
+  "recency_weight": 0
+ },
+ {
+  "_id": "hybrid_all_brief",
+  "label": "Hybrid · moments+turns · briefing",
+  "memory": true,
+  "retrieval": "hybrid",
+  "source": "moments+turns",
+  "k": 8,
+  "briefing": true,
+  "drop_superseded": true,
+  "recency_weight": 0
+ },
+ {
+  "_id": "ablate_superseded",
+  "label": "Ablation · keep superseded",
+  "memory": true,
+  "retrieval": "hybrid",
+  "source": "moments+turns",
+  "k": 8,
+  "briefing": true,
+  "drop_superseded": false,
+  "recency_weight": 0
+ }
+]

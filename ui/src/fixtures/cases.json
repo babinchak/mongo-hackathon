@@ -1,0 +1,410 @@
+[
+ {
+  "_id": "c:m:t_4c1e9a",
+  "repo_id": "FSM1/cipher-box",
+  "moment_id": "m:t_4c1e9a",
+  "scenario": "durable_constraint",
+  "task": "The team wants to publish the new shared-folder links feature as the next minor release. Plan the steps to get version 0.9.0 released.",
+  "expected": "Confirm the feature commits use conventional prefixes (feat:), then merge the release-please \"chore(main): release 0.9.0\" PR, which creates the tag, GitHub release and changelog. No git tag, npm version, or hand-edited version fields.",
+  "fail_signals": [
+   "git tag",
+   "npm version",
+   "git push --tags"
+  ],
+  "keywords": [
+   "release",
+   "release-please",
+   "tag",
+   "changelog",
+   "version"
+  ],
+  "gold_evidence": [
+   "t_4c1e9a",
+   "t_9c12e2",
+   "m:t_4c1e9a"
+  ],
+  "cutoffs": [
+   {
+    "horizon_days": 7,
+    "cutoff": "2026-02-19T15:42:10Z",
+    "session_id": "s_0217w",
+    "commit": "850bae4b33e4fd0f579b81fd33f805d4f6f39057"
+   },
+   {
+    "horizon_days": 30,
+    "cutoff": "2026-03-14T15:42:10Z",
+    "session_id": "s_0312z",
+    "commit": "95bb4d46aea04f34bf755d1a7c8ab4082c17c71f"
+   }
+  ],
+  "repeated_in_real_life": true,
+  "chat_only": true,
+  "status": "approved",
+  "validation": {
+   "repo_only": [
+    "fail",
+    "fail"
+   ],
+   "oracle": [
+    "pass",
+    "pass"
+   ]
+  },
+  "review": {
+   "verdict": "approve",
+   "reason": "Stated twice in two weeks; nothing in the repo says it."
+  }
+ },
+ {
+  "_id": "c:m:t_91b0d3",
+  "repo_id": "FSM1/cipher-box",
+  "moment_id": "m:t_91b0d3",
+  "scenario": "superseded_decision",
+  "task": "Add unit tests for the new rotateVaultKey() helper in packages/crypto, covering re-wrapping of every file key under the new vault key.",
+  "expected": "Vitest tests (import { describe, it, expect } from 'vitest') under packages/crypto, run with `pnpm --filter @cipherbox/crypto test`. No Jest, ts-jest or @types/jest.",
+  "fail_signals": [
+   "jest.config",
+   "ts-jest",
+   "@types/jest"
+  ],
+  "keywords": [
+   "vitest",
+   "jest",
+   "crypto",
+   "tests"
+  ],
+  "gold_evidence": [
+   "t_91b0d3",
+   "t_7a32a9",
+   "m:t_91b0d3"
+  ],
+  "cutoffs": [
+   {
+    "horizon_days": 7,
+    "cutoff": "2026-02-10T10:18:44Z",
+    "session_id": "s_0210w",
+    "commit": "c67b6496c4c80e3914aacf1986f87d0144dcc197"
+   },
+   {
+    "horizon_days": 30,
+    "cutoff": "2026-03-05T10:18:44Z",
+    "session_id": "s_0304z",
+    "commit": "710bb306bae05a4ede0c2a66179d22cd0792cdeb"
+   }
+  ],
+  "repeated_in_real_life": false,
+  "chat_only": true,
+  "status": "approved",
+  "validation": {
+   "repo_only": [
+    "fail",
+    "fail"
+   ],
+   "oracle": [
+    "pass",
+    "pass"
+   ]
+  },
+  "review": {
+   "verdict": "approve",
+   "reason": "Root jest.config still exists at cutoff, so the repo actively misleads. Good superseded case."
+  }
+ },
+ {
+  "_id": "c:m:t_e5d812",
+  "repo_id": "FSM1/cipher-box",
+  "moment_id": "m:t_e5d812",
+  "scenario": "failed_approach",
+  "task": "Add resumable uploads for files over 2 GB so an interrupted upload can continue from the last completed chunk.",
+  "expected": "Reuse the chunked path with per-chunk nonces (prefix + counter, header v2); resume by chunk index so each chunk keeps its own nonce. Never a single IV per file.",
+  "fail_signals": [
+   "single IV",
+   "reuse the IV",
+   "one IV per file"
+  ],
+  "keywords": [
+   "upload",
+   "chunk",
+   "AES-GCM",
+   "nonce",
+   "IV",
+   "resume"
+  ],
+  "gold_evidence": [
+   "t_e5d812",
+   "t_9ce758",
+   "m:t_e5d812"
+  ],
+  "cutoffs": [
+   {
+    "horizon_days": 7,
+    "cutoff": "2026-03-05T19:07:02Z",
+    "session_id": "s_0305a",
+    "commit": "d9ee7cdb5108434e0a4e6fa1b672be15085ef06c"
+   },
+   {
+    "horizon_days": 30,
+    "cutoff": "2026-03-28T19:07:02Z",
+    "session_id": "s_0327x",
+    "commit": "77d4dc47e6a06b2ebf8062c12c814a86e041c97f"
+   }
+  ],
+  "repeated_in_real_life": false,
+  "chat_only": true,
+  "status": "approved",
+  "validation": {
+   "repo_only": [
+    "fail",
+    "fail"
+   ],
+   "oracle": [
+    "pass",
+    "pass"
+   ]
+  },
+  "review": {
+   "verdict": "approve",
+   "reason": "Security-relevant failed approach; not documented in code comments at the cutoff."
+  }
+ },
+ {
+  "_id": "c:m:t_7f3b55",
+  "repo_id": "FSM1/cipher-box",
+  "moment_id": "m:t_7f3b55",
+  "scenario": "superseded_decision",
+  "task": "Persist the user's expanded/collapsed folder state across page reloads.",
+  "expected": "Store expanded-folder state with the Dexie-based vault cache in apps/web/src/db (IndexedDB), not localStorage or sessionStorage.",
+  "fail_signals": [
+   "localStorage",
+   "sessionStorage"
+  ],
+  "keywords": [
+   "folder tree",
+   "cache",
+   "IndexedDB",
+   "Dexie",
+   "localStorage"
+  ],
+  "gold_evidence": [
+   "t_7f3b55",
+   "t_9d5da6",
+   "m:t_7f3b55"
+  ],
+  "cutoffs": [
+   {
+    "horizon_days": 7,
+    "cutoff": "2026-03-12T13:26:50Z",
+    "session_id": "s_0312z",
+    "commit": "5f7e59f33f46ea6f775e284d9514ad195680d48d"
+   },
+   {
+    "horizon_days": 30,
+    "cutoff": "2026-04-04T13:26:50Z",
+    "session_id": "s_0402w",
+    "commit": "ab4ba400f28e9ed826917640c5e07105ef632333"
+   }
+  ],
+  "repeated_in_real_life": false,
+  "chat_only": true,
+  "status": "approved",
+  "validation": {
+   "repo_only": [
+    "fail",
+    "fail"
+   ],
+   "oracle": [
+    "pass",
+    "pass"
+   ]
+  },
+  "review": {
+   "verdict": "approve",
+   "reason": "Clear supersession; localStorage code still present at the 7-day cutoff."
+  }
+ },
+ {
+  "_id": "c:m:t_b82a4c",
+  "repo_id": "FSM1/cipher-box",
+  "moment_id": "m:t_b82a4c",
+  "scenario": "durable_constraint",
+  "task": "Avatar upload in account settings silently fails for PNGs over 5 MB. Plan the fix and how you'll get it reviewed.",
+  "expected": "Work on a feat/ or chore/ branch (e.g. chore/avatar-size-limit) with a `fix:` conventional commit so a preview deploy is created. Not a fix/ branch.",
+  "fail_signals": [
+   "fix/",
+   "checkout -b fix"
+  ],
+  "keywords": [
+   "branch",
+   "preview",
+   "fix",
+   "avatar"
+  ],
+  "gold_evidence": [
+   "t_b82a4c",
+   "t_cb9f26",
+   "m:t_b82a4c"
+  ],
+  "cutoffs": [
+   {
+    "horizon_days": 7,
+    "cutoff": "2026-03-25T09:51:37Z",
+    "session_id": "s_0324w",
+    "commit": "4c8f1d0c70c80e015fec75b4ac048f6796f11a88"
+   },
+   {
+    "horizon_days": 30,
+    "cutoff": "2026-04-17T09:51:37Z",
+    "session_id": "s_0414y",
+    "commit": "157c7875b949ada1431a2c06e2a53f06291f837d"
+   }
+  ],
+  "repeated_in_real_life": false,
+  "chat_only": true,
+  "status": "validated",
+  "validation": {
+   "repo_only": [
+    "fail",
+    "fail"
+   ],
+   "oracle": [
+    "pass",
+    "fail"
+   ]
+  },
+  "review": null
+ },
+ {
+  "_id": "c:m:t_0da6e2",
+  "repo_id": "FSM1/cipher-box",
+  "moment_id": "m:t_0da6e2",
+  "scenario": "failed_approach",
+  "task": "Add an end-to-end test for revoking a shared folder link and make sure it runs in CI.",
+  "expected": "Playwright test under apps/web/e2e run with `pnpm e2e:local` (docker-compose stack, seeded users). Not against staging, not relying on retries.",
+  "fail_signals": [
+   "staging.cipherbox",
+   "E2E_BASE_URL=https://staging"
+  ],
+  "keywords": [
+   "e2e",
+   "playwright",
+   "staging",
+   "docker-compose",
+   "share link"
+  ],
+  "gold_evidence": [
+   "t_0da6e2",
+   "t_b01fbc",
+   "m:t_0da6e2"
+  ],
+  "cutoffs": [
+   {
+    "horizon_days": 7,
+    "cutoff": "2026-04-08T17:12:05Z",
+    "session_id": "s_0407y",
+    "commit": "bb60f4872ce93b2ac29dbd330cbd7d8c76c560d0"
+   },
+   {
+    "horizon_days": 30,
+    "cutoff": "2026-05-01T17:12:05Z",
+    "session_id": "s_0414y",
+    "commit": "4b9e60a0f5c2ac5fe4d2ccf77a777b7139861045"
+   }
+  ],
+  "repeated_in_real_life": true,
+  "chat_only": true,
+  "status": "validated",
+  "validation": {
+   "repo_only": [
+    "fail",
+    "fail"
+   ],
+   "oracle": [
+    "pass",
+    "pass"
+   ]
+  },
+  "review": null
+ },
+ {
+  "_id": "c:m:t_5e20aa",
+  "repo_id": "FSM1/cipher-box",
+  "moment_id": "m:t_5e20aa",
+  "scenario": "durable_constraint",
+  "task": "Add the zod library to apps/api for request validation.",
+  "expected": "pnpm --filter @cipherbox/api add zod.",
+  "fail_signals": [
+   "npm install",
+   "yarn add"
+  ],
+  "keywords": [],
+  "gold_evidence": [
+   "t_5e20aa",
+   "m:t_5e20aa"
+  ],
+  "cutoffs": [
+   {
+    "horizon_days": 7,
+    "cutoff": "2026-02-05T14:02:19Z",
+    "session_id": "s_0205y",
+    "commit": "1e93a4a86a799091f758c224a667c5c91f575940"
+   },
+   {
+    "horizon_days": 30,
+    "cutoff": "2026-02-28T14:02:19Z",
+    "session_id": "s_0227x",
+    "commit": "90e228b3fe40fce5376ec7fe7f74a27d9b787597"
+   }
+  ],
+  "repeated_in_real_life": false,
+  "chat_only": true,
+  "status": "rejected",
+  "validation": {
+   "repo_only": [
+    "pass",
+    "fail"
+   ],
+   "oracle": [
+    "pass",
+    "pass"
+   ]
+  },
+  "review": {
+   "verdict": "reject",
+   "reason": "Any agent infers pnpm from pnpm-lock.yaml and the packageManager field. Not chat-only in practice."
+  }
+ },
+ {
+  "_id": "c:m:t_a19c07",
+  "repo_id": "FSM1/cipher-box",
+  "moment_id": "m:t_a19c07",
+  "scenario": "durable_constraint",
+  "task": "Refactor the share dialog into smaller components.",
+  "expected": "Keep printWidth 100 and only format touched files.",
+  "fail_signals": [
+   "printWidth: 80"
+  ],
+  "keywords": [],
+  "gold_evidence": [
+   "t_a19c07",
+   "m:t_a19c07"
+  ],
+  "cutoffs": [
+   {
+    "horizon_days": 7,
+    "cutoff": "2026-02-16T10:44:51Z",
+    "session_id": "s_0215z",
+    "commit": "25a3a4c9ea1928baf9b03ee1b19931cc32356138"
+   },
+   {
+    "horizon_days": 30,
+    "cutoff": "2026-03-11T10:44:51Z",
+    "session_id": "s_0309y",
+    "commit": "09cf1f7ed37e1c2a7e88743390f9dd44f8675bb2"
+   }
+  ],
+  "repeated_in_real_life": false,
+  "chat_only": false,
+  "status": "filtered_out",
+  "review": null
+ }
+]

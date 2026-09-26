@@ -1,0 +1,222 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { MomentKind, Scenario, ToolCall } from "./types";
+
+// ------------------------------------------------------------------ routing (hash-based)
+export type Route =
+  | { name: "leaderboard" }
+  | { name: "cases" }
+  | { name: "case"; id: string }
+  | { name: "moments" }
+  | { name: "review" }
+  | { name: "timeline" };
+
+export function parseHash(hash: string): Route {
+  const path = hashPath(hash);
+  const parts = path.split("/").filter(Boolean);
+  switch (parts[0]) {
+    case "cases":
+      return parts[1] ? { name: "case", id: decodeURIComponent(parts.slice(1).join("/")) } : { name: "cases" };
+    case "moments":
+      return { name: "moments" };
+    case "review":
+      return { name: "review" };
+    case "timeline":
+      return { name: "timeline" };
+    default:
+      return { name: "leaderboard" };
+  }
+}
+
+const hashPath = (hash: string) => hash.replace(/^#/, "").split("?")[0];
+export const hashQuery = (hash = window.location.hash) => new URLSearchParams(hash.split("?")[1] ?? "");
+
+export function useRoute(): Route {
+  const [route, setRoute] = useState(() => parseHash(window.location.hash));
+  useEffect(() => {
+    let path = hashPath(window.location.hash);
+    const on = () => {
+      const next = hashPath(window.location.hash);
+      setRoute(parseHash(window.location.hash));
+      // Only reset scroll on a real page change, not when a page tweaks its own query (?id=, ?repo=).
+      if (next !== path) window.scrollTo(0, 0);
+      path = next;
+    };
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
+  return route;
+}
+
+/** The current hash query, re-read on every hash change. */
+export function useHashQuery(): URLSearchParams {
+  const [qs, setQs] = useState(() => window.location.hash.split("?")[1] ?? "");
+  useEffect(() => {
+    const on = () => setQs(window.location.hash.split("?")[1] ?? "");
+    window.addEventListener("hashchange", on);
+    return () => window.removeEventListener("hashchange", on);
+  }, []);
+  return useMemo(() => new URLSearchParams(qs), [qs]);
+}
+
+/** Query keys that follow you from page to page. */
+const STICKY = ["repo", "fixtures"];
+
+/** Build a hash href. Keeps the sticky query (`repo`, `fixtures`) and adds `params`. */
+export function href(path: string, params?: Record<string, string | undefined>): string {
+  const cur = hashQuery();
+  const out = new URLSearchParams();
+  for (const k of STICKY) if (cur.has(k)) out.set(k, cur.get(k)!);
+  for (const [k, v] of Object.entries(params ?? {})) if (v != null) out.set(k, v);
+  const s = out.toString().replace(/(^|&)fixtures=(?=&|$)/, "$1fixtures");
+  return `#${path}${s ? `?${s}` : ""}`;
+}
+export const caseHref = (id: string) => href(`/cases/${encodeURIComponent(id)}`);
+export const momentHref = (id: string, repo?: string) => href("/moments", { id, repo });
+
+/** Change query keys on the current hash (undefined deletes). `replace` avoids a history entry. */
+export function setHashQuery(updates: Record<string, string | undefined>, { replace = false } = {}) {
+  const [path] = window.location.hash.replace(/^#/, "").split("?");
+  const cur = hashQuery();
+  for (const [k, v] of Object.entries(updates)) {
+    if (v == null || v === "") cur.delete(k);
+    else cur.set(k, v);
+  }
+  const s = cur.toString().replace(/(^|&)fixtures=(?=&|$)/, "$1fixtures");
+  const next = `#${path || "/"}${s ? `?${s}` : ""}`;
+  if (next === window.location.hash) return;
+  if (replace) {
+    history.replaceState(history.state, "", next);
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  } else {
+    window.location.hash = next;
+  }
+}
+
+// ------------------------------------------------------------------ repo selection
+export const REPOS = ["FSM1/cipher-box", "marcus-sa/brain", "melagiri/code-insights"] as const;
+export const DEFAULT_REPO = REPOS[0];
+const REPO_KEY = "hindsight.repo";
+
+function storedRepo(): string | null {
+  try {
+    return window.localStorage.getItem(REPO_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** Selected repo: `?repo=` in the hash, else the last one picked (localStorage), else the default. */
+export function currentRepo(): string {
+  return hashQuery().get("repo") || storedRepo() || DEFAULT_REPO;
+}
+
+export function useRepo(): string {
+  const q = useHashQuery();
+  return q.get("repo") || storedRepo() || DEFAULT_REPO;
+}
+
+export function setRepo(repo: string) {
+  try {
+    window.localStorage.setItem(REPO_KEY, repo);
+  } catch {
+    /* private mode / blocked storage: the URL still carries it */
+  }
+  // A moment id belongs to one repo; drop it when switching.
+  setHashQuery({ repo, id: undefined });
+}
+
+// ------------------------------------------------------------------ async
+export interface Async<T> {
+  data: T | undefined;
+  error: string | undefined;
+  loading: boolean;
+  reload: () => void;
+  setData: (fn: (d: T | undefined) => T | undefined) => void;
+}
+export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]): Async<T> {
+  const [data, setDataState] = useState<T>();
+  const [error, setError] = useState<string>();
+  const [loading, setLoading] = useState(true);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError(undefined);
+    fn().then(
+      (d) => alive && (setDataState(d), setLoading(false)),
+      (e) => alive && (setError(String(e?.message ?? e)), setLoading(false)),
+    );
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...deps, tick]);
+  const reload = useCallback(() => setTick((t) => t + 1), []);
+  const setData = useCallback((f: (d: T | undefined) => T | undefined) => setDataState((d) => f(d)), []);
+  return { data, error, loading, reload, setData };
+}
+
+// ------------------------------------------------------------------ formatting
+export const pct = (x: number | null | undefined, digits = 0) => (x == null || Number.isNaN(x) ? "—" : `${(x * 100).toFixed(digits)}%`);
+export const pts = (d: number) => `${d >= 0 ? "+" : "−"}${Math.abs(Math.round(d * 100))}`;
+export const usd = (x: number | null | undefined) => (x == null ? "—" : `$${x.toFixed(x < 0.1 ? 3 : 2)}`);
+/** Parse an ISO string; timestamps without a zone (Mongo naive datetimes) are treated as UTC. */
+export const parseDate = (s: string | number | null | undefined): Date =>
+  typeof s === "string" && /T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(s) ? new Date(`${s}Z`) : new Date(s ?? NaN);
+export const isFar = (s: string | null | undefined) => !s || s.startsWith("9999");
+export const fmtDate = (s: string) =>
+  parseDate(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+export const fmtShortDate = (s: string) => parseDate(s).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+export const fmtTime = (s: string) =>
+  parseDate(s).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
+export const fmtDuration = (s: number | null | undefined) =>
+  s == null ? "—" : s >= 60 ? `${Math.floor(s / 60)}m ${Math.round(s % 60)}s` : `${s.toFixed(0)}s`;
+
+export const SCENARIO_LABEL: Record<Scenario, string> = {
+  durable_constraint: "Durable constraint",
+  superseded_decision: "Superseded decision",
+  failed_approach: "Failed approach",
+};
+export const SCENARIOS: Scenario[] = ["durable_constraint", "superseded_decision", "failed_approach"];
+
+export const KIND_LABEL: Record<MomentKind, string> = {
+  constraint: "Constraint",
+  decision: "Decision",
+  fact: "Fact",
+  procedure: "Procedure",
+  failed_approach: "Failed approach",
+  none: "Untyped",
+};
+
+export function toolSummary(c: ToolCall): string {
+  const a = c.args ?? {};
+  const s = (k: string) => (typeof a[k] === "string" ? (a[k] as string) : undefined);
+  switch (c.tool) {
+    case "search_memory":
+      return `“${s("query") ?? JSON.stringify(a)}”`;
+    case "read":
+    case "ls":
+      return s("path") ?? s("file_path") ?? JSON.stringify(a);
+    case "grep":
+    case "find":
+      return [s("pattern"), s("path")].filter(Boolean).join("  in ") || JSON.stringify(a);
+    case "bash":
+      return s("command") ?? JSON.stringify(a);
+    default:
+      return JSON.stringify(a);
+  }
+}
+
+export const shortSha = (s: string | null | undefined) => (s ? s.slice(0, 7) : "—");
+
+/** Compact column labels for known config ids; unknown ids fall back to the id. */
+export const CONFIG_SHORT: Record<string, string> = {
+  repo_only: "repo",
+  vector_turns: "vec·turns",
+  hybrid_turns: "hyb·turns",
+  hybrid_all: "hyb·all",
+  hybrid_all_brief: "hyb·brief",
+  ablate_superseded: "ablate",
+  oracle: "oracle",
+};
+export const isLive = (r: { phase?: string; repeat: number }) => r.phase === "live" || r.repeat < 0;
