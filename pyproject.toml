@@ -1,0 +1,13 @@
+[project]
+name = "hindsight"
+version = "0.1.0"
+description = "Temporal memory benchmark + Atlas memory harness for coding agents"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.5.5",
+    "fastapi>=0.141.1",
+    "openai>=3.19.2",
+    "pymongo>=4.18.2",
+    "python-dotenv>=1.2.3",
+    "uvicorn>=0.54.0",
+]
