@@ -91,12 +91,14 @@ def spend() -> dict:
             "pi": {"runs": pi["runs"], "cost_usd": pi["cost_usd"]}, "llm": rows}
 
 
-def heldout(configs: list[str] | None = None) -> dict:
+def heldout(all_configs: bool = False) -> dict:
     """pass@1 and pass^k on the latest tuning run's held-out (later-cutoff) cases, all horizons."""
     t = db().tuning.find_one(sort=[("created_at", -1)])
     if not t:
         return {}
-    configs = configs or ["repo_only", t["start"], t["best"]]
+    configs = ["repo_only", t["start"], t["best"]]
+    if all_configs:  # every hand-designed config plus the tuner's pick, for a fair held-out leaderboard
+        configs = [c["_id"] for c in db().harness_configs.find({"tuned": {"$ne": True}}, {"_id": 1})] + [t["best"]]
     rows = list(db().runs.aggregate(_per_case({"case_id": {"$in": t["test_cases"]}, "config_id": {"$in": configs}})
                                     + _rollup("$_id.config_id")))
     labels = {c["_id"]: c.get("label", c["_id"]) for c in db().harness_configs.find({"_id": {"$in": configs}})}

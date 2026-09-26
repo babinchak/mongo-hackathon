@@ -218,5 +218,5 @@ def get_run(run_id: str):
 
 
 @app.get("/api/heldout")
-def get_heldout():
-    return stats.heldout()
+def get_heldout(all: bool = False):
+    return stats.heldout(all)

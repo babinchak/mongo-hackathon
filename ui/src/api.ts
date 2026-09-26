@@ -479,5 +479,9 @@ export const getJudgeAudit = () => (STATIC ? snapOptional<JudgeAudit>("judge_aud
 /** GET /api/heldout → the headline held-out comparison; undefined when missing or not built yet. */
 export const getHeldout = () => (STATIC ? snapOptional<HeldOut>("heldout.json") : optional<HeldOut>("/api/heldout"));
 
+/** GET /api/heldout?all=true: every hand-designed config plus the tuned one, on the held-out cases only. */
+export const getHeldoutAll = () =>
+  STATIC ? snapOptional<HeldOut>("heldout_all.json") : optional<HeldOut>("/api/heldout?all=true");
+
 /** GET /api/spend */
 export const getSpend = () => (STATIC ? snapOptional<Spend>("spend.json") : optional<Spend>("/api/spend"));

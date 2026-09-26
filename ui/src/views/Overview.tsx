@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from "react";
-import { getFunnel, getHeldout, getLeaderboard, getTimeline, getTuning, STATIC } from "../api";
-import { DevChart, DevLegend, incumbents, knobChanges, latestTunedRun, TestBars, testOrder } from "../components/tuning";
+import { getFunnel, getHeldout, getHeldoutAll, getLeaderboard, getTimeline, getTuning, STATIC } from "../api";
+import { DevChart, DevLegend, incumbents, knobChanges, latestTunedRun } from "../components/tuning";
 import { FixtureNote } from "../components/ui";
 import { configName, href, isTuned, pct, pts, REPOS, runsHref, useAsync } from "../lib";
 import type { Funnel, HeldOut, LeaderboardRow, TuningRun } from "../types";
@@ -48,6 +48,7 @@ export default function Overview() {
   const lb = useAsync(() => getLeaderboard(undefined), []);
   const tuning = useAsync(() => getTuning(), []);
   const held = useAsync(() => getHeldout(), []);
+  const heldAll = useAsync(() => getHeldoutAll(), []);
   const run = latestTunedRun(tuning.data);
   const tl = useAsync(() => Promise.all(REPOS.map((r) => getTimeline(r).catch(() => undefined))), []);
 
@@ -112,11 +113,11 @@ export default function Overview() {
         </ol>
       </section>
 
-      <Results rows={lb.data} error={lb.error} run={run} held={held.data} />
+      <Results rows={lb.data} error={lb.error} run={run} held={held.data} heldAll={heldAll.data} />
 
       <div className="ov-mid">
-        <TuningPanel run={run} error={tuning.error ?? (tuning.data && !run ? "no tuning runs yet" : undefined)} />
-        <LeaderMini rows={lb.data} error={lb.error} />
+        <TuningPanel run={run} held={held.data} error={tuning.error ?? (tuning.data && !run ? "no tuning runs yet" : undefined)} />
+        <LeaderMini held={heldAll.data} rows={lb.data} error={lb.error} />
       </div>
 
       <div className="ov-bottom">
@@ -139,13 +140,16 @@ function bestHandDesigned(rows: LeaderboardRow[]): LeaderboardRow | undefined {
   return [...mem].sort((a, b) => b.pass_at_1 - a.pass_at_1 || b.pass_pow_3 - a.pass_pow_3)[0];
 }
 
-function Results({ rows, error, run, held }: { rows?: LeaderboardRow[]; error?: string; run?: TuningRun; held?: HeldOut }) {
+function Results({ rows, error, run, held, heldAll }: { rows?: LeaderboardRow[]; error?: string; run?: TuningRun; held?: HeldOut; heldAll?: HeldOut }) {
   const full = (rows ?? []).filter((r) => !isTuned(r.config_id));
   const by = new Map(full.map((r) => [r.config_id, r]));
   const repo = by.get("repo_only");
   const best = bestHandDesigned(rows ?? []);
-  const moments = by.get("hybrid_all");
-  const turns = by.get("hybrid_turns");
+  // Same scope as the hero when available: the held-out cases.
+  const hBy = new Map((heldAll?.configs ?? []).map((c) => [c.config_id, c]));
+  const onHeld = hBy.has("hybrid_all") && hBy.has("hybrid_turns");
+  const moments = onHeld ? hBy.get("hybrid_all") : by.get("hybrid_all");
+  const turns = onHeld ? hBy.get("hybrid_turns") : by.get("hybrid_turns");
   const runs = (rows ?? []).reduce((a, r) => a + (r.n_runs ?? 0), 0);
   const nCases = Math.max(0, ...full.map((r) => r.n_cases));
   const horizons = new Set(full.flatMap((r) => Object.keys(r.by_horizon ?? {}))).size;
@@ -167,7 +171,7 @@ function Results({ rows, error, run, held }: { rows?: LeaderboardRow[]; error?: 
       href: runsHref(best.config_id, { unused: "1" }),
       big: `${unused.bound && unused.v < 0.995 ? "≥" : ""}${pct(unused.v)}`,
       label: "of failures had the answer retrieved",
-      sub: <>memory returned the gold evidence; pi didn’t act on it</>,
+      sub: <>memory returned the gold evidence; pi didn’t act on it · all {nCases} cases</>,
     });
   if (moments && turns && turns.pass_at_1 > 0)
     side.push({
@@ -178,7 +182,7 @@ function Results({ rows, error, run, held }: { rows?: LeaderboardRow[]; error?: 
       label: "pass@1: mined moments vs. raw turns",
       sub: (
         <>
-          {pct(moments.pass_at_1)} vs {pct(turns.pass_at_1)} with the same hybrid retrieval
+          {pct(moments.pass_at_1)} vs {pct(turns.pass_at_1)} with the same hybrid retrieval{onHeld && " · held-out cases"}
         </>
       ),
     });
@@ -294,7 +298,7 @@ function Progression({ held, run, best, repo }: { held?: HeldOut; run?: TuningRu
         }
         steps={[
           { kind: "repo", n: pct(hRepo.pass_at_1), name: "Repo only", sub: "no memory" },
-          { kind: "hand", n: pct(hStart.pass_at_1), name: "Best hand-designed memory", sub: hStart.label, title: hStart.config_id },
+          { kind: "hand", n: pct(hStart.pass_at_1), name: "Hand-designed memory", sub: <>{hStart.label} · the tuner’s starting point</>, title: hStart.config_id },
           {
             kind: "tuned",
             n: pct(hBest.pass_at_1),
@@ -371,7 +375,9 @@ function Progression({ held, run, best, repo }: { held?: HeldOut; run?: TuningRu
 }
 
 // ------------------------------------------------------------------ the harness tuned itself
-function TuningPanel({ run, error }: { run?: TuningRun; error?: string }) {
+function TuningPanel({ run, held, error }: { run?: TuningRun; held?: HeldOut; error?: string }) {
+  const hStart = held?.configs.find((c) => c.config_id === held.start);
+  const hBest = held?.configs.find((c) => c.config_id === held.best);
   const steps = run?.steps ?? [];
   const incs = incumbents(steps);
   const changes = steps
@@ -427,13 +433,12 @@ function TuningPanel({ run, error }: { run?: TuningRun; error?: string }) {
                 ))}
                 {!changes.length && <li className="muted">No accepted changes yet.</li>}
               </ol>
-              {run.test && testOrder(run).length > 0 && (
-                <>
-                  <div className="ov-sublabel ov-sublabel-gap">
-                    Held-out <span className="muted">· tuner’s own check at +7 days (n={testN(run)})</span>
-                  </div>
-                  <TestBars run={run} roleFirst />
-                </>
+              {hStart && hBest && (
+                <p className="ov-tune-held">
+                  On held-out cases: <strong>{pct(hStart.pass_at_1)}</strong> → <strong className="ov-tune-held-best">{pct(hBest.pass_at_1)}</strong>{" "}
+                  pass@1, <strong>{pct(hStart.pass_pow_k)}</strong> → <strong className="ov-tune-held-best">{pct(hBest.pass_pow_k)}</strong> pass^
+                  {hBest.k} <span className="muted">(the result above)</span>
+                </p>
               )}
             </div>
           </div>
@@ -443,12 +448,14 @@ function TuningPanel({ run, error }: { run?: TuningRun; error?: string }) {
   );
 }
 
-/** Runs per config in the tuner's own held-out check ("72", or "72 / 70" when they differ). */
-const testN = (run: TuningRun) => [...new Set(testOrder(run).map((c) => run.test![c].n_runs))].join(" / ");
-
 // ------------------------------------------------------------------ leaderboard mini chart
-function LeaderMini({ rows, error }: { rows?: LeaderboardRow[]; error?: string }) {
-  const sorted = [...(rows ?? [])].sort((a, b) => b.pass_at_1 - a.pass_at_1 || a.label.localeCompare(b.label));
+type MiniRow = { config_id: string; label: string; pass_at_1: number; n_runs: number; n_cases: number };
+
+/** pass@1 per config on the held-out cases (fair to the tuned config); full suite if that isn't available. */
+function LeaderMini({ held, rows, error }: { held?: HeldOut; rows?: LeaderboardRow[]; error?: string }) {
+  const onHeld = !!held?.configs?.length;
+  const source: MiniRow[] = onHeld ? held!.configs : (rows ?? []);
+  const sorted = [...source].sort((a, b) => b.pass_at_1 - a.pass_at_1 || a.label.localeCompare(b.label));
   const tuned = sorted.find((r) => isTuned(r.config_id));
   const nCases = Math.max(0, ...sorted.map((r) => r.n_cases));
   const scale = Math.max(0.5, Math.ceil(Math.max(0, ...sorted.map((r) => r.pass_at_1)) * 10) / 10);
@@ -465,7 +472,8 @@ function LeaderMini({ rows, error }: { rows?: LeaderboardRow[]; error?: string }
       ) : (
         <>
           <p className="ov-tune-lede">
-            Same agent and tasks; only the memory changes · all {nCases} cases
+            Same agent and tasks; only the memory changes ·{" "}
+            {onHeld ? <>held-out cases ({nCases}), never tuned on</> : <>all {nCases} cases</>}
           </p>
           <ol className="lbm">
             {sorted.map((r) => {
@@ -482,7 +490,7 @@ function LeaderMini({ rows, error }: { rows?: LeaderboardRow[]; error?: string }
                       <span className="lbm-bar" style={{ ["--w" as string]: Math.min(1, r.pass_at_1 / scale) }} />
                       <span className="lbm-val">
                         {pct(r.pass_at_1)}
-                        {isT && <sup>✦</sup>}
+                        {isT && !onHeld && <sup>✦</sup>}
                       </span>
                     </span>
                   </a>
@@ -490,7 +498,7 @@ function LeaderMini({ rows, error }: { rows?: LeaderboardRow[]; error?: string }
               );
             })}
           </ol>
-          {tuned && (
+          {tuned && !onHeld && (
             <p className="lbm-foot">
               <sup>✦</sup> The self-tuned config’s full-suite number includes the dev cases it was tuned on; the fair comparison is the held-out test
               above.

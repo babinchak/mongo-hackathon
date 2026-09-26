@@ -4044,3 +4044,6 @@ a.ov-kpi:hover {
 .rx-row.rx-same:hover td.rx-task a {
   color: var(--accent-ink);
 }
+
+.ov-tune-held { margin: 14px 0 0; font-size: 14px; line-height: 1.5; }
+.ov-tune-held-best { color: var(--tuned, #7c3aed); }

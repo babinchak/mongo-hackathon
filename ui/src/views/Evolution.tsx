@@ -149,7 +149,7 @@ function TestPanel({ run, cfgById }: { run: TuningRun; cfgById: Map<string, Harn
     <Panel title="Held-out test" aside={<span className="muted">{run.test_cases?.length ?? 0} later-cutoff cases</span>}>
       <p className="evo-note">
         Tuned on <strong>earlier cutoffs</strong> (dev, {run.dev_cases?.length ?? 0} cases); reported on <strong>later cutoffs</strong> (test) the tuner
-        never saw.
+        never saw. These bars are the tuner’s own check at the +7 day horizon; the Overview reports the same cases across every horizon.
       </p>
       {!test || !order.length ? (
         <div className="empty evo-test-empty">

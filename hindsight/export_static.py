@@ -45,6 +45,8 @@ def export(out: Path, api: str):
     for name in ("configs", "tuning", "spend", "judge_audit", "heldout"):
         put(f"{name}.json", get(f"/api/{name}"))
 
+    put("heldout_all.json", get("/api/heldout", all="true"))
+
     n_cases = 0
     for repo in REPOS:
         s = slug(repo)
