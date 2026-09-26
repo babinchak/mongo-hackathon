@@ -5,8 +5,9 @@ __pycache__/
 .venv/
 node_modules/
 dist/
-snapshots/
-repos/
-data/
+/snapshots/
+/repos/
+/data/
 *.parquet
 .DS_Store
+/logs/
