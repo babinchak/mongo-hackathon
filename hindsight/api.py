@@ -1,13 +1,35 @@
+import re
 from datetime import datetime
+from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from hindsight.db import db
 from hindsight.memory import configs, search as mem, stats
 from hindsight.pipeline.evaluate import execute
 
-app = FastAPI(title="Hindsight")
+DASH = re.compile(r"\s*\u2014\s*")
+
+
+def _plain(v: Any) -> Any:
+    """Normalize LLM-written punctuation in everything the UI renders."""
+    if isinstance(v, str):
+        return DASH.sub(", ", v)
+    if isinstance(v, list):
+        return [_plain(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _plain(x) for k, x in v.items()}
+    return v
+
+
+class PlainJSONResponse(JSONResponse):
+    def render(self, content: Any) -> bytes:
+        return super().render(_plain(content))
+
+
+app = FastAPI(title="Hindsight", default_response_class=PlainJSONResponse)
 
 
 class MemoryQuery(BaseModel):

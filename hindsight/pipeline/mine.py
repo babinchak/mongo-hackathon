@@ -12,7 +12,7 @@ from hindsight.memory.search import FAR
 SYSTEM = """You read one exchange from a developer's real session with a coding agent: the agent's \
 last message, then the developer's reply, which pushed back on the agent.
 
-Decide whether the reply contains durable project knowledge — something an agent working on a \
+Decide whether the reply contains durable project knowledge: something an agent working on a \
 DIFFERENT task in this repo weeks later would get wrong without knowing it.
 
 kind:

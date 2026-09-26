@@ -1,4 +1,4 @@
-/* Hindsight UI — plain CSS, light + dark via prefers-color-scheme (data-theme overrides). */
+/* Hindsight UI: plain CSS, light + dark via prefers-color-scheme (data-theme overrides). */
 
 :root {
   color-scheme: light;

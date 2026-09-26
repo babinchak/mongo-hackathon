@@ -1,4 +1,4 @@
-# Contracts (frozen — change only via the integrator)
+# Contracts (frozen; change only via the integrator)
 
 Shared shapes for the pipeline, memory service, pi harness, and UI. All timestamps are UTC
 `datetime` in Mongo and ISO-8601 strings (`2026-03-01T12:00:00Z`) over HTTP.
@@ -25,7 +25,7 @@ LLM access: `from hindsight.llm import embed, chat_json`. Models come from `.env
   "agent": "Claude Code", "prompts": 42, "branch": "main" }
 ```
 
-### `memory` — turns AND moments in one collection (one vector + one text index)
+### `memory`: turns AND moments in one collection (one vector + one text index)
 Common fields:
 ```json
 { "_id": "<turn_id> | m:<turn_id>", "kind": "turn | moment", "repo_id": "...",
@@ -50,7 +50,7 @@ Search indexes on `memory` (created by `hindsight/indexes.py`):
 - `memory_text` (search): `text` (lucene.english); `repo_id`, `kind` as token; `ts`,
   `superseded_at` as date; `durable`, `noise` as boolean.
 
-**Invariant: every query against `memory` filters `repo_id` and `ts < cutoff` inside Atlas —
+**Invariant: every query against `memory` filters `repo_id` and `ts < cutoff` inside Atlas,
 vector AND text. `drop_superseded` means `superseded_at >= cutoff` (superseded as of the cutoff,
 not as of today).**
 
@@ -102,7 +102,7 @@ Regular indexes: `memory(repo_id, ts)`, `memory(session_id, seq)`, `cases(repo_i
 ```
 Moments first, then turns. `k` optional (defaults to config's `k`).
 
-`POST /api/memory/briefing` — same request (no `k`); response `{ "text": "markdown bullets", "ids": [...] }`.
+`POST /api/memory/briefing`: same request (no `k`); response `{ "text": "markdown bullets", "ids": [...] }`.
 Current (not superseded as of cutoff) durable decisions/constraints relevant to the query.
 
 ## pi extension env

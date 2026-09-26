@@ -309,7 +309,7 @@ function TestPanel({ run, cfgById }: { run: TuningRun; cfgById: Map<string, Harn
           {start && best && run.best !== run.start && (
             <div className={`evo-verdict ${best.pass_at_1 > start.pass_at_1 ? "pos" : "neg"}`}>
               <strong>{pts(best.pass_at_1 - start.pass_at_1)} pts</strong> test pass@1 for {configName(run.best)} over {run.start}
-              {best.pass_at_1 <= start.pass_at_1 && " — the dev gain didn’t transfer"}
+              {best.pass_at_1 <= start.pass_at_1 && ": the dev gain didn’t transfer"}
             </div>
           )}
           <div className="legend small">

@@ -467,8 +467,8 @@ function Runs({
                   <td className="num strong">
                     {pass}/{rs.length}
                   </td>
-                  <td className="num">{cfg?.memory === false ? "—" : pct(rs.filter((r) => r.hit_gold).length / rs.length)}</td>
-                  <td className="num">{cfg?.memory === false ? "—" : pct(rs.filter((r) => r.used_memory_tool).length / rs.length)}</td>
+                  <td className="num">{cfg?.memory === false ? "-" : pct(rs.filter((r) => r.hit_gold).length / rs.length)}</td>
+                  <td className="num">{cfg?.memory === false ? "-" : pct(rs.filter((r) => r.used_memory_tool).length / rs.length)}</td>
                   <td className="num">{usd(rs.reduce((a, r) => a + r.cost_usd, 0) / rs.length)}</td>
                 </tr>
               );

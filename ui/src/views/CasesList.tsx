@@ -103,7 +103,7 @@ export default function CasesList({ repo }: { repo: string }) {
                               {Math.round(s.pass * 100)}
                             </span>
                           ) : (
-                            <span className="muted">—</span>
+                            <span className="muted">-</span>
                           )}
                         </td>
                       );

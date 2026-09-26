@@ -22,7 +22,7 @@ moments** and wrote 207 cases. **120** survived the chat-only filter and **47** 
 
 | Harness config | pass@1 | pass^3 | evidence recall | pass@1 at +1d → +7d → +21d |
 |---|---|---|---|---|
-| Repo only (no memory) | 0.04 | 0.00 | — | 0.04 → 0.03 → 0.05 |
+| Repo only (no memory) | 0.04 | 0.00 | n/a | 0.04 → 0.03 → 0.05 |
 | Vector · raw turns | 0.15 | 0.06 | 0.40 | 0.18 → 0.14 → 0.13 |
 | Hybrid · raw turns | 0.15 | 0.04 | 0.45 | 0.20 → 0.14 → 0.11 |
 | Hybrid · moments + turns | 0.38 | 0.18 | 0.92 | 0.40 → 0.34 → 0.40 |
@@ -112,6 +112,16 @@ All are computed with MongoDB aggregation pipelines (`hindsight/memory/stats.py`
   where the developer really did repeat themselves are reported separately.
 - The judge sees the task, expected behavior, fail signals and the plan, never the evidence.
 - The results are a pilot; the leaderboard shows n in every cell.
+
+## Demo walkthrough (UI at http://localhost:5173)
+
+1. **Overview** (`#/`): the pipeline with live counts from Atlas, headline results, and how Atlas is used.
+2. **Moments** (`#/moments`): mined project knowledge next to the developer's original words, with
+   repeat and supersede links. Try the cipher-box moment about the staging VPS SSH key.
+3. **Case inspector** (`#/cases/...`): the task, expected behavior, every run grouped by config,
+   and **Run now**, which runs pi live against the snapshot (~20 s).
+4. **Leaderboard** (`#/leaderboard`): configs on the full suite, found-vs-used gap, horizon decay.
+5. **Evolution** (`#/evolution`): the self-tuning trajectory and its held-out test result.
 
 ## Running it
 

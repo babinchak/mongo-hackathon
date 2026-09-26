@@ -8,7 +8,7 @@ from hindsight.llm import chat_json, embed
 
 SYSTEM = """You audit candidate "project memories" extracted from a developer's sessions with a \
 coding agent. Keep a memory ONLY if it is general project knowledge that would change how an agent \
-does a DIFFERENT, future task in this repo — a standing rule, convention, design decision, \
+does a DIFFERENT, future task in this repo: a standing rule, convention, design decision, \
 environment fact, required procedure, or approach known not to work.
 
 REJECT: one-off requests ("fix this comment", "add a todo for X", "kill the api"), bug reports \

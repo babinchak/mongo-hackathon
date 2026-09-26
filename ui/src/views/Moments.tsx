@@ -425,7 +425,7 @@ function MomentRow({
           <KindTag k={m.moment_kind} />
         </span>
         <span className="m-topic" title={m.topic}>
-          {m.topic || "—"}
+          {m.topic || "-"}
         </span>
         <span className="m-text">
           {rule ? <RichText text={rule} /> : <span className="muted m-norule">no rule extracted · “{clip(m.source_text ?? "", 140)}”</span>}

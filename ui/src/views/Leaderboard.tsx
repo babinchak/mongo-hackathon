@@ -206,7 +206,7 @@ function Row({ r, cfg, best, uniformK }: { r: LeaderboardRow; cfg?: HarnessConfi
       </td>
       <td className="num">
         {noMem ? (
-          <span className="muted">—</span>
+          <span className="muted">-</span>
         ) : (
           <div className="num-meter">
             {pct(r.evidence_recall)}
@@ -214,7 +214,7 @@ function Row({ r, cfg, best, uniformK }: { r: LeaderboardRow; cfg?: HarnessConfi
           </div>
         )}
       </td>
-      <td className="num">{noMem ? <span className="muted">—</span> : pct(r.memory_tool_use)}</td>
+      <td className="num">{noMem ? <span className="muted">-</span> : pct(r.memory_tool_use)}</td>
       <td className="num">{usd(r.cost_usd_per_run)}</td>
       <td className="num n-cell">
         {r.n_cases} cases
@@ -424,7 +424,7 @@ function Horizons({ rows, horizons, kLabel, best }: { rows: LeaderboardRow[]; ho
                       className="hz-col"
                       title={s ? `+${h} days · pass@1 ${pct(s.pass_at_1)} · ${kLabel} ${pct(s.pass_pow_3)} · n=${s.n_cases} cases` : `+${h} days: no runs`}
                     >
-                      <div className="hz-val">{s ? pct(s.pass_at_1) : "—"}</div>
+                      <div className="hz-val">{s ? pct(s.pass_at_1) : "-"}</div>
                       <div className="hz-track">
                         {s && (
                           <>
@@ -485,7 +485,7 @@ function Breakdown({
                 if (!s || s.pass_at_1 == null)
                   return (
                     <td key={c.key} className="muted">
-                      —
+                      -
                     </td>
                   );
                 return (

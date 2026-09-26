@@ -153,7 +153,7 @@ export interface LeaderboardRow extends SliceStats {
   k?: number;
   config_id: string;
   label: string;
-  evidence_recall: number | null; // 0..1 (UI shows "—" for configs with memory: false)
+  evidence_recall: number | null; // 0..1 (UI shows "-" for configs with memory: false)
   memory_tool_use: number | null; // 0..1
   cost_usd_per_run: number;
   /** Share of failed runs where memory returned the gold evidence (newer backends only). */

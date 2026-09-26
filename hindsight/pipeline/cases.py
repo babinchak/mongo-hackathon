@@ -20,12 +20,12 @@ Rules:
 - The task must NOT mention, hint at, or paraphrase the knowledge. It should read like a normal \
 request ("Cut a release for the new sharing feature", "Add an integration test for upload").
 - The task must be answerable as a PLAN (the agent only investigates read-only and proposes \
-steps, commands, files, branch names) — no need to actually edit code.
+steps, commands, files, branch names); no need to actually edit code.
 - expected: what a correct plan must do or avoid, citing the knowledge concretely.
 - fail_signals: 1-3 concrete, checkable things a wrong plan would contain (exact commands, file \
 names, package names, branch patterns). For a superseded decision, include the OLD approach.
 - keywords: 3-6 distinctive strings the correct answer depends on (identifiers, commands, file \
-names) — used to grep the repo to see whether the repo itself already documents this.
+names), used to grep the repo to see whether the repo itself already documents this.
 - If the knowledge cannot support a fair task (too vague, only meaningful inside that session), \
 set usable=false."""
 

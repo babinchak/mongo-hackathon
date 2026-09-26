@@ -40,7 +40,7 @@ const PHASES: { phase: Phase; label: string; span: number }[] = [
   { phase: "eval", label: "Evaluate", span: 1 },
 ];
 
-const fmt = (n: number | undefined) => (n == null ? "—" : n.toLocaleString("en-US"));
+const fmt = (n: number | undefined) => (n == null ? "-" : n.toLocaleString("en-US"));
 
 export default function Overview() {
   const funnel = useAsync(() => getFunnel(), []);
@@ -58,19 +58,19 @@ export default function Overview() {
         </h1>
         <p className="ov-pitch">
           Coding agents forget between sessions. Hindsight turns <strong>real agent history</strong> into a{" "}
-          <strong>long-horizon memory benchmark</strong> — and uses it to <strong>evolve the agent’s memory harness</strong>.
+          <strong>long-horizon memory benchmark</strong>, and uses it to <strong>evolve the agent’s memory harness</strong>.
         </p>
         <div className="ov-statements">
           <a className="ov-stmt" href={href("/leaderboard")}>
             <span className="ov-stmt-n">Statement 2</span>
             <span>
-              <strong>Long-horizon engineering</strong> — memory across weeks of real sessions, measured by hard eval signals
+              <strong>Long-horizon engineering</strong>: memory across weeks of real sessions, measured by hard eval signals
             </span>
           </a>
           <a className="ov-stmt" href={href("/evolution")}>
             <span className="ov-stmt-n">Statement 1</span>
             <span>
-              <strong>Recursive harnessing</strong> — the harness tunes its own memory config from eval failures
+              <strong>Recursive harnessing</strong>: the harness tunes its own memory config from eval failures
             </span>
           </a>
         </div>
@@ -202,7 +202,7 @@ function Results({ rows, error }: { rows?: LeaderboardRow[]; error?: string }) {
     });
 
   return (
-    <a className="ov-results" href={href("/leaderboard")} aria-label="Headline results — open the leaderboard">
+    <a className="ov-results" href={href("/leaderboard")} aria-label="Headline results: open the leaderboard">
       {tiles.length ? (
         tiles.map((t) => (
           <div key={t.key} className={`ov-kpi ov-kpi-${t.tone}`}>

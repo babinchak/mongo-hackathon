@@ -150,7 +150,7 @@ def tune(rounds=5, start="hybrid_all"):
         if step["accepted"]:
             best = step
         print(f"  round {i}: {cid} dev pass@1 {step['dev']['pass_at_1']:.3f} "
-              f"({'ACCEPT' if step['accepted'] else 'reject'}) — {hypothesis}")
+              f"({'ACCEPT' if step['accepted'] else 'reject'}): {hypothesis}")
         save("running")
 
     doc["test"] = {cid: {k: v for k, v in evaluate(cid, test, phase="tune_test").items() if k != "runs"}

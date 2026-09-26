@@ -180,9 +180,9 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]): Async<T> {
 }
 
 // ------------------------------------------------------------------ formatting
-export const pct = (x: number | null | undefined, digits = 0) => (x == null || Number.isNaN(x) ? "—" : `${(x * 100).toFixed(digits)}%`);
+export const pct = (x: number | null | undefined, digits = 0) => (x == null || Number.isNaN(x) ? "-" : `${(x * 100).toFixed(digits)}%`);
 export const pts = (d: number) => `${d >= 0 ? "+" : "−"}${Math.abs(Math.round(d * 100))}`;
-export const usd = (x: number | null | undefined) => (x == null ? "—" : `$${x.toFixed(x < 0.1 ? 3 : 2)}`);
+export const usd = (x: number | null | undefined) => (x == null ? "-" : `$${x.toFixed(x < 0.1 ? 3 : 2)}`);
 /** Parse an ISO string; timestamps without a zone (Mongo naive datetimes) are treated as UTC. */
 export const parseDate = (s: string | number | null | undefined): Date =>
   typeof s === "string" && /T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(s) ? new Date(`${s}Z`) : new Date(s ?? NaN);
@@ -193,7 +193,7 @@ export const fmtShortDate = (s: string) => parseDate(s).toLocaleDateString("en-U
 export const fmtTime = (s: string) =>
   parseDate(s).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
 export const fmtDuration = (s: number | null | undefined) =>
-  s == null ? "—" : s >= 60 ? `${Math.floor(s / 60)}m ${Math.round(s % 60)}s` : `${s.toFixed(0)}s`;
+  s == null ? "-" : s >= 60 ? `${Math.floor(s / 60)}m ${Math.round(s % 60)}s` : `${s.toFixed(0)}s`;
 
 export const SCENARIO_LABEL: Record<Scenario, string> = {
   durable_constraint: "Durable constraint",
@@ -230,7 +230,7 @@ export function toolSummary(c: ToolCall): string {
   }
 }
 
-export const shortSha = (s: string | null | undefined) => (s ? s.slice(0, 7) : "—");
+export const shortSha = (s: string | null | undefined) => (s ? s.slice(0, 7) : "-");
 
 /** Compact column labels for known config ids; unknown ids fall back to the id. */
 export const CONFIG_SHORT: Record<string, string> = {
