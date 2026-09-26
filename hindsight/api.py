@@ -176,3 +176,42 @@ def get_judge_audit():
 def get_tuning():
     """Self-tuning runs, newest first, with each step's config, hypothesis and dev score."""
     return list(db().tuning.find().sort("created_at", -1).limit(10))
+
+
+@app.get("/api/runs")
+def list_runs(config_id: str, repo_id: str | None = None, verdict: str | None = None,
+              horizon_days: int | None = None, phase: str = "sweep", limit: int = 2000):
+    """Runs of one config (leaderboard drill-down), without the long plan text."""
+    q = {"config_id": config_id, "phase": phase}
+    if verdict:
+        q["verdict"] = verdict
+    if horizon_days:
+        q["horizon_days"] = horizon_days
+    if repo_id:
+        q["case_id"] = {"$in": db().cases.distinct("_id", {"repo_id": repo_id})}
+    runs = list(db().runs.find(q, {"response": 0, "tool_calls": 0}).sort("created_at", 1).limit(limit))
+    tasks = {c["_id"]: c for c in db().cases.find({"_id": {"$in": list({r["case_id"] for r in runs})}},
+                                                   {"task": 1, "repo_id": 1, "scenario": 1})}
+    for r in runs:
+        c = tasks.get(r["case_id"], {})
+        r |= {"task": c.get("task", ""), "repo_id": c.get("repo_id"), "scenario": c.get("scenario"),
+              "n_context": len(r.get("context_ids", []))}
+    return runs
+
+
+@app.get("/api/runs/{run_id}")
+def get_run(run_id: str):
+    """Full trace of one run: task, memory pi saw (gold marked), tool calls, plan, judge verdict."""
+    run = db().runs.find_one({"_id": run_id})
+    if not run:
+        raise HTTPException(404, "unknown run")
+    case = db().cases.find_one({"_id": run["case_id"]}, {"task": 1, "expected": 1, "fail_signals": 1, "repo_id": 1,
+                                                         "scenario": 1, "moment_id": 1, "gold_evidence": 1})
+    gold = set(case.get("gold_evidence", [])) if case else set()
+    ids = run.get("context_ids", [])
+    docs = {d["_id"]: d for d in db().memory.find({"_id": {"$in": ids}}, {"embedding": 0})}
+    memory = [{"id": i, "kind": d.get("kind"), "ts": d.get("ts"), "text": d.get("text", ""), "role": d.get("role"),
+               "moment_kind": d.get("moment_kind"), "topic": d.get("topic"), "is_gold": i in gold}
+              for i in ids if (d := docs.get(i))]
+    return {"run": run, "case": case, "config": db().harness_configs.find_one({"_id": run["config_id"]}),
+            "memory": memory}

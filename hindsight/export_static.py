@@ -65,9 +65,24 @@ def export(out: Path, api: str):
             put(f"case/{case_file(c['_id'])}.json", detail)
             n_cases += 1
 
+    n_runs = 0
+    for cfg in get("/api/configs"):
+        runs = get("/api/runs", config_id=cfg["_id"])
+        if not runs:
+            continue
+        put(f"runs/{case_file(cfg['_id'])}.json", runs)
+        for r in runs:
+            trace = get(f"/api/runs/{urllib.parse.quote(r['_id'], safe='')}")
+            for m in trace["memory"]:
+                if m["kind"] == "turn":  # raw chat text is not published
+                    m["text"] = ""
+                    m["redacted"] = True
+            put(f"run/{case_file(r['_id'])}.json", trace)
+            n_runs += 1
+
     put("meta.json", {"exported_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "repos": REPOS})
     size = sum(p.stat().st_size for p in out.rglob("*.json"))
-    print(f"exported {n_cases} case pages · {size / 1e6:.1f} MB → {out}")
+    print(f"exported {n_cases} case pages, {n_runs} run traces · {size / 1e6:.1f} MB → {out}")
 
 
 if __name__ == "__main__":
