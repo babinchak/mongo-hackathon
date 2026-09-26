@@ -1,0 +1,9 @@
+{
+  "name": "hindsight-agent",
+  "private": true,
+  "type": "module",
+  "description": "pi coding agent (unmodified dependency) + Hindsight memory extension",
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "0.87.1"
+  }
+}
