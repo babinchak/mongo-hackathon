@@ -7,7 +7,7 @@ from hindsight.pipeline.evaluate import execute
 from hindsight.snapshots import snapshot
 
 
-def run(repo_id: str, repeats: int = 2, limit: int | None = None, workers: int = 8):
+def run(repo_id: str, repeats: int = 2, limit: int | None = None, workers: int = 16):
     q = {"repo_id": repo_id, "chat_only": True, "status": "generated"}
     cases = list(db().cases.find(q).limit(limit or 0))
     for c in cases:  # warm snapshots serially; git work isn't thread-safe

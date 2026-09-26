@@ -143,3 +143,8 @@ def list_moments(repo_id: str, durable: bool | None = True, kind: str | None = N
         s = src.get(m["source_turn_id"], {})
         m["source_text"] = s.get("text", "")[:2000]
     return moments
+
+
+@app.get("/api/judge_audit")
+def get_judge_audit():
+    return db().audits.find_one({"_id": {"$regex": "^judge_audit:"}}, sort=[("created_at", -1)]) or {}

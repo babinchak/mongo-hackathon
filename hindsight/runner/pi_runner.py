@@ -21,6 +21,28 @@ MEMORY_NUDGE = (
     "This project has a memory of earlier agent sessions. Before planning, call search_memory "
     "at least once with a query about the task (and again for any convention you are unsure of)."
 )
+RESTATE = (
+    "Before the plan, add a short section 'Project rules that apply' quoting each remembered "
+    "decision or constraint relevant to this task, then make every step consistent with them."
+)
+RULES_FRAMING = (
+    "Project memory holds decisions and constraints the developer gave in earlier sessions. Treat "
+    "them as binding project rules: they override conventions you infer from the code or docs, and "
+    "newer entries override older ones."
+)
+
+
+def memory_prompt(cfg: dict) -> str:
+    """System-prompt text for a memory config's presentation knobs (defaults = original behavior)."""
+    parts = []
+    if cfg.get("framing", "notes") == "rules":
+        parts.append(RULES_FRAMING)
+    nudge = cfg.get("nudge", "search_first")
+    if nudge in ("search_first", "restate"):
+        parts.append(MEMORY_NUDGE)
+    if nudge == "restate":
+        parts.append(RESTATE)
+    return "\n\n".join(parts)
 
 
 def plan_prompt(cutoff: str | None) -> str:
@@ -35,7 +57,7 @@ def plan_prompt(cutoff: str | None) -> str:
     )
 
 
-def build_command(task, *, use_memory, model, extra_system, cutoff) -> list[str]:
+def build_command(task, *, use_memory, model, extra_system, cutoff, memory_text=MEMORY_NUDGE) -> list[str]:
     tools = READ_TOOLS + (["search_memory"] if use_memory else [])
     cmd = [
         "node", str(PI_CLI),
@@ -48,7 +70,9 @@ def build_command(task, *, use_memory, model, extra_system, cutoff) -> list[str]
     if extra_system:
         cmd += ["--append-system-prompt", extra_system]
     if use_memory:
-        cmd += ["--append-system-prompt", MEMORY_NUDGE, "-e", str(EXTENSION)]
+        if memory_text:
+            cmd += ["--append-system-prompt", memory_text]
+        cmd += ["-e", str(EXTENSION)]
     return cmd + ["--", task]
 
 
@@ -124,8 +148,12 @@ def run_pi(snapshot_dir, task, *, config_id, repo_id=None, cutoff=None, model=No
         env.update(HINDSIGHT_API=api_base, HINDSIGHT_REPO=repo_id,
                    HINDSIGHT_CUTOFF=cutoff, HINDSIGHT_CONFIG=config_id)
 
+    memory_text = None
+    if use_memory:
+        from hindsight.memory import configs
+        memory_text = memory_prompt(configs.get(config_id))
     cmd = build_command(task, use_memory=use_memory, model=model,
-                        extra_system=extra_system, cutoff=cutoff)
+                        extra_system=extra_system, cutoff=cutoff, memory_text=memory_text)
     start = time.monotonic()
     proc = subprocess.Popen(cmd, cwd=snapshot_dir, env=env, stdin=subprocess.DEVNULL,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)

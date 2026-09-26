@@ -2,10 +2,9 @@
 from hindsight.db import db
 
 
-def _per_case(match: dict, extra_key: str | None = None) -> list[dict]:
-    key = {"config_id": "$config_id", "case_id": "$case_id"}
-    if extra_key:
-        key[extra_key] = f"${extra_key}"
+def _per_case(match: dict) -> list[dict]:
+    """One unit = (config, case, horizon); pass^k means all k repeats of that unit passed."""
+    key = {"config_id": "$config_id", "case_id": "$case_id", "horizon_days": "$horizon_days"}
     return [
         {"$match": {"phase": "sweep", "verdict": {"$in": ["pass", "fail"]}, **match}},
         {"$group": {"_id": key, "runs": {"$sum": 1},
@@ -20,10 +19,13 @@ def _per_case(match: dict, extra_key: str | None = None) -> list[dict]:
 
 def _rollup(group_id) -> list[dict]:
     return [
-        {"$group": {"_id": group_id, "n_cases": {"$sum": 1}, "n_runs": {"$sum": "$runs"},
+        {"$group": {"_id": group_id, "n_units": {"$sum": 1}, "cases": {"$addToSet": "$_id.case_id"},
+                    "k": {"$min": "$runs"}, "n_runs": {"$sum": "$runs"},
                     "pass_at_1": {"$avg": "$pass_rate"}, "pass_pow_3": {"$avg": "$all_pass"},
                     "evidence_recall": {"$avg": "$hit_gold"}, "memory_tool_use": {"$avg": "$tool_use"},
                     "cost": {"$sum": "$cost"}}},
+        {"$set": {"n_cases": {"$size": "$cases"}}},
+        {"$unset": "cases"},
     ]
 
 
@@ -33,7 +35,7 @@ def leaderboard(repo_id: str | None = None) -> list[dict]:
         match["case_id"] = {"$in": [c["_id"] for c in db().cases.find({"repo_id": repo_id}, {"_id": 1})]}
     runs = db().runs
     overall = list(runs.aggregate(_per_case(match) + _rollup("$_id.config_id")))
-    by_h = list(runs.aggregate(_per_case(match, "horizon_days") +
+    by_h = list(runs.aggregate(_per_case(match) +
                                _rollup({"config_id": "$_id.config_id", "h": "$_id.horizon_days"})))
     by_s = list(runs.aggregate(_per_case(match) + [
         {"$lookup": {"from": "cases", "localField": "_id.case_id", "foreignField": "_id", "as": "case"}},
@@ -44,7 +46,8 @@ def leaderboard(repo_id: str | None = None) -> list[dict]:
     for row in overall:
         cid = row["_id"]
         out.append({
-            "config_id": cid, "label": labels.get(cid, cid), "n_cases": row["n_cases"], "n_runs": row["n_runs"],
+            "config_id": cid, "label": labels.get(cid, cid), "n_cases": row["n_cases"], "n_units": row["n_units"],
+            "k": row["k"], "n_runs": row["n_runs"],
             "pass_at_1": row["pass_at_1"], "pass_pow_3": row["pass_pow_3"],
             "evidence_recall": row["evidence_recall"], "memory_tool_use": row["memory_tool_use"],
             "cost_usd_per_run": row["cost"] / max(row["n_runs"], 1),

@@ -7,11 +7,15 @@ from hindsight.pipeline.evaluate import execute
 from hindsight.snapshots import snapshot
 
 
-def run(configs: list[str], horizons: list[int], repeats: int, repo_id: str | None = None, workers: int = 8):
+def run(configs: list[str], horizons: list[int], repeats: int, repo_id: str | None = None, workers: int = 8,
+        fresh_only: bool = False):
     q = {"status": {"$in": ["validated", "approved"]}}
     if repo_id:
         q["repo_id"] = repo_id
     cases = list(db().cases.find(q))
+    if fresh_only:  # cases with no sweep runs yet (lets a second sweep run beside a live one)
+        swept = set(db().runs.distinct("case_id", {"phase": "sweep"}))
+        cases = [c for c in cases if c["_id"] not in swept]
     jobs = []
     for c in cases:
         for h in horizons:
@@ -34,5 +38,7 @@ if __name__ == "__main__":
     p.add_argument("--horizons", default="7")
     p.add_argument("--repeats", type=int, default=3)
     p.add_argument("--repo")
+    p.add_argument("--workers", type=int, default=8)
+    p.add_argument("--fresh-only", action="store_true")
     a = p.parse_args()
-    run(a.configs.split(","), [int(h) for h in a.horizons.split(",")], a.repeats, a.repo)
+    run(a.configs.split(","), [int(h) for h in a.horizons.split(",")], a.repeats, a.repo, a.workers, a.fresh_only)

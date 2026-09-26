@@ -118,8 +118,9 @@ def search(repo_id: str, cutoff: datetime, query: str, config_id: str, k: int | 
     return [_out(d) for d in moments + turns][: k + len(moments)]
 
 
-def briefing(repo_id: str, cutoff: datetime, query: str, config_id: str, k: int = 8) -> dict:
+def briefing(repo_id: str, cutoff: datetime, query: str, config_id: str, k: int | None = None) -> dict:
     cfg = configs.get(config_id)
+    k = k or cfg.get("briefing_k", 8)
     if not cfg.get("memory"):
         return {"text": "", "ids": []}
     cutoff = _aware(cutoff)
@@ -130,6 +131,10 @@ def briefing(repo_id: str, cutoff: datetime, query: str, config_id: str, k: int 
         return {"text": "", "ids": []}
     lines = [f"- [{_aware(d['ts']):%Y-%m-%d} · {d.get('moment_kind')} · {d.get('topic') or 'general'}] {d['text']}"
              for d in items]
-    text = ("## Project memory (decisions and constraints from earlier sessions, "
-            f"as of {cutoff:%Y-%m-%d})\n" + "\n".join(lines))
+    if cfg.get("framing", "notes") == "rules":
+        head = (f"## Binding project rules (decided by the developer in earlier sessions, as of {cutoff:%Y-%m-%d}; "
+                "they override conventions inferred from the code)\n")
+    else:
+        head = f"## Project memory (decisions and constraints from earlier sessions, as of {cutoff:%Y-%m-%d})\n"
+    text = head + "\n".join(lines)
     return {"text": text, "ids": [d["_id"] for d in items]}
