@@ -215,3 +215,8 @@ def get_run(run_id: str):
               for i in ids if (d := docs.get(i))]
     return {"run": run, "case": case, "config": db().harness_configs.find_one({"_id": run["config_id"]}),
             "memory": memory}
+
+
+@app.get("/api/heldout")
+def get_heldout():
+    return stats.heldout()

@@ -89,3 +89,19 @@ def spend() -> dict:
     rows = [{"stage": r["_id"]["stage"], "model": r["_id"]["model"], "calls": r["calls"], "cost_usd": r["cost_usd"]} for r in by]
     return {"total_usd": sum(r["cost_usd"] for r in rows) + pi["cost_usd"],
             "pi": {"runs": pi["runs"], "cost_usd": pi["cost_usd"]}, "llm": rows}
+
+
+def heldout(configs: list[str] | None = None) -> dict:
+    """pass@1 and pass^k on the latest tuning run's held-out (later-cutoff) cases, all horizons."""
+    t = db().tuning.find_one(sort=[("created_at", -1)])
+    if not t:
+        return {}
+    configs = configs or ["repo_only", t["start"], t["best"]]
+    rows = list(db().runs.aggregate(_per_case({"case_id": {"$in": t["test_cases"]}, "config_id": {"$in": configs}})
+                                    + _rollup("$_id.config_id")))
+    labels = {c["_id"]: c.get("label", c["_id"]) for c in db().harness_configs.find({"_id": {"$in": configs}})}
+    by = {r["_id"]: {"config_id": r["_id"], "label": labels.get(r["_id"], r["_id"]), "pass_at_1": r["pass_at_1"],
+                     "pass_pow_k": r["pass_pow_3"], "k": r["k"], "n_runs": r["n_runs"], "n_units": r["n_units"],
+                     "n_cases": r["n_cases"]} for r in rows}
+    return {"tuning_id": t["_id"], "start": t["start"], "best": t["best"], "n_test_cases": len(t["test_cases"]),
+            "configs": [by[c] for c in configs if c in by]}

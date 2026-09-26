@@ -42,7 +42,7 @@ def export(out: Path, api: str):
 
     put("funnel.json", get("/api/funnel"))
     put("leaderboard.json", get("/api/leaderboard"))
-    for name in ("configs", "tuning", "spend", "judge_audit"):
+    for name in ("configs", "tuning", "spend", "judge_audit", "heldout"):
         put(f"{name}.json", get(f"/api/{name}"))
 
     n_cases = 0
