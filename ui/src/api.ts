@@ -1,6 +1,8 @@
 // Typed API client. Every call hits the real backend (/api, proxied to 127.0.0.1:8000 in dev) and
 // falls back to bundled fixtures when the API is unreachable / not implemented, or when the URL
 // contains `?fixtures` (either before the hash or inside it: `#/cases?fixtures`).
+// Static builds (VITE_STATIC=1, `npm run build:static`) instead read pre-exported JSON from
+// `<base>/data/` and never touch /api or the fixtures.
 import type {
   CaseDetail,
   CaseDoc,
@@ -20,13 +22,64 @@ import type {
   TurnDoc,
 } from "./types";
 
+// ------------------------------------------------------------------ static snapshot mode
+/** True in the read-only static build: every getter reads `data/*.json`, writes are refused. */
+export const STATIC = import.meta.env.VITE_STATIC === "1";
+
+/** Repo id to snapshot file slug: "FSM1/cipher-box" becomes "FSM1__cipher-box". */
+const repoSlug = (repoId: string) => repoId.replace(/\//g, "__");
+/** Case id to snapshot file name (anything but letters, digits and "-" becomes "_"). */
+const caseFile = (id: string) => id.replace(/[^A-Za-z0-9-]/g, "_");
+
+class NotInSnapshot extends Error {}
+
+async function snap<T>(path: string): Promise<T> {
+  const url = `${import.meta.env.BASE_URL}data/${path}`;
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (e) {
+    throw new Error(`couldn't fetch ${url}: ${String(e)}`);
+  }
+  const text = await res.text().catch(() => "");
+  if (!res.ok) throw new NotInSnapshot(res.status === 404 ? `not in this snapshot (data/${path})` : `${res.status} data/${path}`);
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    // Some static hosts answer a missing file with an HTML page.
+    throw new NotInSnapshot(`not in this snapshot (data/${path})`);
+  }
+}
+
+/** Snapshot file for an optional page extra: undefined when it's missing. */
+async function snapOptional<T>(path: string): Promise<T | undefined> {
+  try {
+    return await snap<T>(path);
+  } catch {
+    return undefined;
+  }
+}
+
+export interface SnapshotMeta {
+  exported_at?: string;
+  repos?: string[];
+}
+let metaP: Promise<SnapshotMeta | undefined> | null = null;
+/** data/meta.json (static mode only). */
+export function getSnapshotMeta(): Promise<SnapshotMeta | undefined> {
+  if (!STATIC) return Promise.resolve(undefined);
+  return (metaP ??= snapOptional<SnapshotMeta>("meta.json"));
+}
+
+const READ_ONLY = "This hosted page is a read-only snapshot.";
+
 // ------------------------------------------------------------------ API status + per-response provenance
 /**
  * Header badge state. "live": the backend answered the last request (whatever the status code).
  * "offline": the backend couldn't be reached. "forced": `?fixtures` in the URL. "unknown": nothing sent yet.
  */
-export type ApiStatus = "unknown" | "live" | "offline" | "forced";
-let status: ApiStatus = fixturesForced() ? "forced" : "unknown";
+export type ApiStatus = "unknown" | "live" | "offline" | "forced" | "snapshot";
+let status: ApiStatus = STATIC ? "snapshot" : fixturesForced() ? "forced" : "unknown";
 const listeners = new Set<(s: ApiStatus) => void>();
 export function getApiStatus(): ApiStatus {
   return status;
@@ -177,6 +230,7 @@ const q = (params: Record<string, string | undefined>) => {
 
 /** GET /api/leaderboard?repo_id= (all repos when repoId is undefined) */
 export function getLeaderboard(repoId: string | undefined): Promise<LeaderboardRow[]> {
+  if (STATIC) return snap(repoId ? `leaderboard/${repoSlug(repoId)}.json` : "leaderboard.json");
   return withFallback(
     () => http<LeaderboardRow[]>("GET", `/api/leaderboard${q({ repo_id: repoId })}`),
     async () => (await fixtures()).leaderboard,
@@ -185,6 +239,7 @@ export function getLeaderboard(repoId: string | undefined): Promise<LeaderboardR
 
 /** GET /api/funnel?repo_id= (all repos when repoId is undefined) */
 export function getFunnel(repoId?: string): Promise<Funnel> {
+  if (STATIC) return snap(repoId ? `funnel/${repoSlug(repoId)}.json` : "funnel.json");
   return withFallback(
     () => http<Funnel>("GET", `/api/funnel${q({ repo_id: repoId })}`),
     async () => (await fixtures()).funnel,
@@ -204,6 +259,11 @@ function normalizeCases(raw: CasesResponse | CaseWithSummary[]): CasesResponse {
 
 /** GET /api/cases?repo_id=&status= */
 export function getCases(repoId: string, status?: CaseStatus): Promise<CasesResponse> {
+  if (STATIC)
+    return snap<CasesResponse | CaseWithSummary[]>(`cases/${repoSlug(repoId)}.json`).then((raw) => {
+      const all = normalizeCases(raw);
+      return status ? { ...all, cases: all.cases.filter((c) => c.status === status) } : all;
+    });
   return withFallback(
     async () => normalizeCases(await http<CasesResponse | CaseWithSummary[]>("GET", `/api/cases${q({ repo_id: repoId, status })}`)),
     async () => {
@@ -220,6 +280,7 @@ export function getCases(repoId: string, status?: CaseStatus): Promise<CasesResp
 
 /** GET /api/cases/:id */
 export function getCase(id: string): Promise<CaseDetail> {
+  if (STATIC) return snap(`case/${caseFile(id)}.json`);
   return withFallback(
     () => http<CaseDetail>("GET", `/api/cases/${encodeURIComponent(id)}`),
     async () => {
@@ -246,6 +307,7 @@ export function getCase(id: string): Promise<CaseDetail> {
 /** POST /api/cases/:id/review {verdict, reason} → {ok, status} (or the updated case doc). Returns the updated case. */
 export function postReview(c: CaseDoc, verdict: "approve" | "reject", reason: string): Promise<CaseDoc> {
   const updated: CaseDoc = { ...c, review: { verdict, reason }, status: verdict === "approve" ? "approved" : "rejected" };
+  if (STATIC) return Promise.reject(new Error(READ_ONLY));
   return withFallback(
     async () => {
       const res = await http<Partial<CaseDoc> & { ok?: boolean; status?: string }>(
@@ -266,6 +328,7 @@ export function postReview(c: CaseDoc, verdict: "approve" | "reject", reason: st
 
 /** GET /api/configs */
 export function getConfigs(): Promise<HarnessConfig[]> {
+  if (STATIC) return snap("configs.json");
   return withFallback(
     () => http<HarnessConfig[]>("GET", "/api/configs"),
     async () => (await fixtures()).configs,
@@ -274,6 +337,7 @@ export function getConfigs(): Promise<HarnessConfig[]> {
 
 /** GET /api/timeline?repo_id= → {sessions, moments (durable, + has_case)} */
 export function getTimeline(repoId: string): Promise<TimelineResponse> {
+  if (STATIC) return snap(`timeline/${repoSlug(repoId)}.json`);
   return withFallback(
     () => http<TimelineResponse>("GET", `/api/timeline${q({ repo_id: repoId })}`),
     async () => {
@@ -292,6 +356,8 @@ export function getTimeline(repoId: string): Promise<TimelineResponse> {
  * The page filters kind / search / relations client-side so chip counts stay exact.
  */
 export function getMoments(repoId: string, durable: boolean, limit = 5000): Promise<MomentDoc[]> {
+  // The snapshot drops source_text and raw_text: only the mined rule is published.
+  if (STATIC) return snap(`moments/${repoSlug(repoId)}${durable ? "" : ".rejected"}.json`);
   return withFallback(
     () => http<MomentDoc[]>("GET", `/api/moments${q({ repo_id: repoId, durable: String(durable), limit: String(limit) })}`),
     async () => {
@@ -306,6 +372,7 @@ export function getMoments(repoId: string, durable: boolean, limit = 5000): Prom
 
 /** POST /api/runs {case_id, config_id, horizon_days} → run doc. Blocks ~30 s while pi runs. */
 export function postRun(case_id: string, config_id: string, horizon_days: number): Promise<RunDoc> {
+  if (STATIC) return Promise.reject(new Error(READ_ONLY));
   return withFallback(
     () => http<RunDoc>("POST", "/api/runs", { case_id, config_id, horizon_days }, 300_000),
     async () => {
@@ -328,6 +395,7 @@ export function postRun(case_id: string, config_id: string, horizon_days: number
 
 /** GET /api/tuning → self-tuning runs, newest first. */
 export function getTuning(): Promise<TuningRun[]> {
+  if (STATIC) return snap("tuning.json");
   return withFallback(
     () => http<TuningRun[]>("GET", "/api/tuning"),
     async () => structuredClone((await import("./fixtures/tuning.json")).default) as TuningRun[],
@@ -345,7 +413,7 @@ async function optional<T>(path: string): Promise<T | undefined> {
 }
 
 /** GET /api/judge_audit → {} until the audit has run. */
-export const getJudgeAudit = () => optional<JudgeAudit>("/api/judge_audit");
+export const getJudgeAudit = () => (STATIC ? snapOptional<JudgeAudit>("judge_audit.json") : optional<JudgeAudit>("/api/judge_audit"));
 
 /** GET /api/spend */
-export const getSpend = () => optional<Spend>("/api/spend");
+export const getSpend = () => (STATIC ? snapOptional<Spend>("spend.json") : optional<Spend>("/api/spend"));

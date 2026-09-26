@@ -3166,3 +3166,34 @@ kbd {
     grid-template-columns: 1fr;
   }
 }
+
+/* ------------------------------------------------------------------ static snapshot build (VITE_STATIC=1) */
+.source-snapshot {
+  white-space: nowrap;
+}
+.source-snapshot .source-dot {
+  background: var(--accent);
+}
+.snapshot-banner {
+  border-top: 1px solid var(--line);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 4px 16px;
+}
+.snapshot-banner a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+}
+.snapshot-note {
+  margin: 0;
+  line-height: 1.5;
+}
+.snapshot-note-box {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--line-strong);
+  background: var(--surface-2);
+}

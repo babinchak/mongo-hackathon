@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { getApiStatus, onApiStatusChange, type ApiStatus } from "./api";
-import { ALL_REPOS, concreteRepo, href, REPOS, setRepo, useRepo, useRoute } from "./lib";
+import { getApiStatus, getSnapshotMeta, onApiStatusChange, STATIC, type ApiStatus } from "./api";
+import { ALL_REPOS, concreteRepo, fmtDate, fmtShortDate, fmtTime, href, REPOS, setRepo, useAsync, useRepo, useRoute } from "./lib";
 import Overview from "./views/Overview";
 import Leaderboard from "./views/Leaderboard";
 import Evolution from "./views/Evolution";
@@ -25,7 +25,10 @@ const STATUS_TEXT: Record<ApiStatus, { label: string; title: string }> = {
   live: { label: "live", title: "The Hindsight API (MongoDB Atlas) is responding" },
   offline: { label: "API offline", title: "The Hindsight API is unreachable; pages that fell back to fixtures say so" },
   forced: { label: "fixtures", title: "Synthetic fixture data (?fixtures in URL)" },
+  snapshot: { label: "snapshot", title: "Read-only snapshot exported from the live run" },
 };
+
+const REPO_URL = "https://github.com/babinchak/mongo-hackathon";
 
 export default function App() {
   const route = useRoute();
@@ -37,6 +40,12 @@ export default function App() {
   const spansAll = route.name === "overview" || route.name === "evolution";
   const [status, setStatus] = useState<ApiStatus>(getApiStatus());
   useEffect(() => onApiStatusChange(setStatus), []);
+  const meta = useAsync(() => getSnapshotMeta(), []);
+  const exportedAt = meta.data?.exported_at;
+  const badge =
+    status === "snapshot" && exportedAt
+      ? { label: `snapshot · ${fmtShortDate(exportedAt)}, ${fmtTime(exportedAt)} UTC`, title: `${STATUS_TEXT.snapshot.title} on ${fmtDate(exportedAt)} at ${fmtTime(exportedAt)} UTC` }
+      : STATUS_TEXT[status];
 
   return (
     <div className="app">
@@ -82,12 +91,20 @@ export default function App() {
                 ))}
               </select>
             </label>
-            <span className={`source source-${status}`} title={STATUS_TEXT[status].title}>
+            <span className={`source source-${status}`} title={badge.title}>
               <span className="source-dot" aria-hidden />
-              {STATUS_TEXT[status].label}
+              {badge.label}
             </span>
           </div>
         </div>
+        {STATIC && (
+          <div className="snapshot-banner" role="note">
+            Read-only snapshot of a live run ·{" "}
+            <a href={REPO_URL} target="_blank" rel="noreferrer">
+              source on GitHub
+            </a>
+          </div>
+        )}
       </header>
       <main className="main">
         {route.name === "overview" && <Overview />}

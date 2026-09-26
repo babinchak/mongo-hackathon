@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { getCases, getMoments } from "../api";
-import { ErrorBox, FixtureNote, KindTag, Loading, RichText } from "../components/ui";
+import { getCases, getMoments, STATIC } from "../api";
+import { ErrorBox, FixtureNote, KindTag, Loading, RichText, SnapshotChatNote } from "../components/ui";
 import { caseHref, fmtDate, fmtShortDate, fmtTime, isFar, KIND_LABEL, setHashQuery, useAsync, useHashQuery } from "../lib";
 import type { MomentDoc, MomentKind } from "../types";
 
@@ -49,7 +49,7 @@ export default function Moments({ repo }: { repo: string }) {
   // Mining runs in the background: while nothing durable has landed yet, poll.
   const minedNothing = durable.data !== undefined && durable.data.length === 0;
   useEffect(() => {
-    if (!minedNothing) return;
+    if (!minedNothing || STATIC) return;
     const t = setInterval(() => {
       durable.reload();
       rejected.reload();
@@ -183,8 +183,9 @@ export default function Moments({ repo }: { repo: string }) {
         <div>
           <h1>Moments</h1>
           <p className="lede">
-            Durable project knowledge the miner pulled out of developer turns. Expand a row to put the mined rule next to what the developer
-            actually said.
+            {STATIC
+              ? "Durable project knowledge the miner pulled out of developer turns. Expand a row to see the mined rule, the audit and related moments."
+              : "Durable project knowledge the miner pulled out of developer turns. Expand a row to put the mined rule next to what the developer actually said."}
           </p>
         </div>
       </div>
@@ -305,7 +306,7 @@ export default function Moments({ repo }: { repo: string }) {
               ref={searchRef}
               type="text"
               className="m-search"
-              placeholder="Search rule, topic, developer’s words…  ( / )"
+              placeholder={STATIC ? "Search rule, topic, audit reason…  ( / )" : "Search rule, topic, developer’s words…  ( / )"}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="Search moments"
@@ -334,7 +335,11 @@ export default function Moments({ repo }: { repo: string }) {
       ) : !current.data ? (
         <Loading what="moments" />
       ) : !all.length ? (
-        view === "durable" ? (
+        view === "durable" && STATIC ? (
+          <div className="empty-card">
+            <strong>No durable moments for {repo} in this snapshot.</strong>
+          </div>
+        ) : view === "durable" ? (
           <div className="empty-card mining">
             <span className="mining-dots" aria-hidden>
               <span />
@@ -428,7 +433,13 @@ function MomentRow({
           {m.topic || "-"}
         </span>
         <span className="m-text">
-          {rule ? <RichText text={rule} /> : <span className="muted m-norule">no rule extracted · “{clip(m.source_text ?? "", 140)}”</span>}
+          {rule ? (
+            <RichText text={rule} />
+          ) : STATIC ? (
+            <span className="muted m-norule">no rule extracted</span>
+          ) : (
+            <span className="muted m-norule">no rule extracted · “{clip(m.source_text ?? "", 140)}”</span>
+          )}
           {view === "rejected" && m.refine_reason && <span className="m-reason">{m.refine_reason}</span>}
         </span>
         <span className="m-badges">
@@ -468,7 +479,9 @@ function MomentDetail({
       <div className="m-compare">
         <section className="m-said">
           <h3>Developer said</h3>
-          {m.source_text ? (
+          {STATIC ? (
+            <SnapshotChatNote />
+          ) : m.source_text ? (
             <blockquote className="m-source">{m.source_text}</blockquote>
           ) : (
             <p className="muted small">Source turn text unavailable.</p>

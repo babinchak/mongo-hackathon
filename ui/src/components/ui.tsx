@@ -165,3 +165,21 @@ export function FixtureNote({ data }: { data: unknown[] }) {
     </div>
   );
 }
+
+/** Static snapshot only: stands in wherever the UI would show the developer's original chat text. */
+export function SnapshotChatNote() {
+  return (
+    <p className="snapshot-note muted small">
+      Original chat text isn’t published in the hosted snapshot (it’s from the SWE-chat dataset); run locally to see it.
+    </p>
+  );
+}
+
+/** Static snapshot only: explains why an action that needs the local harness is unavailable. */
+export function SnapshotReadOnlyNote({ children }: { children: ReactNode }) {
+  return (
+    <div className="snapshot-note snapshot-note-box muted small" role="note">
+      {children}
+    </div>
+  );
+}

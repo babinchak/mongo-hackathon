@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { getFunnel, getLeaderboard, getTimeline } from "../api";
+import { getFunnel, getLeaderboard, getTimeline, STATIC } from "../api";
 import { FixtureNote } from "../components/ui";
 import { href, isTuned, pct, REPOS, useAsync } from "../lib";
 import type { Funnel, LeaderboardRow } from "../types";
@@ -81,7 +81,7 @@ export default function Overview() {
       <section className="ov-pipe" aria-label="Pipeline">
         <div className="ov-pipe-head">
           <h2>Pipeline</h2>
-          <span className="muted">live counts from Atlas · all {REPOS.length} repos · each stage opens its page</span>
+          <span className="muted">{STATIC ? "counts exported from Atlas" : "live counts from Atlas"} · all {REPOS.length} repos · each stage opens its page</span>
         </div>
         <div className="ov-phases" aria-hidden>
           {PHASES.map((p) => (

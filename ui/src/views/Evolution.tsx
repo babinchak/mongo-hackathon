@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getConfigs, getTuning } from "../api";
+import { getConfigs, getTuning, STATIC } from "../api";
 import { ErrorBox, FixtureNote, Loading, Panel } from "../components/ui";
 import { configName, fmtDate, fmtTime, pct, pts, useAsync } from "../lib";
 import type { HarnessConfig, TuningKnobs, TuningRun, TuningStep } from "../types";
@@ -42,7 +42,7 @@ export default function Evolution() {
   const running = run?.status === "running";
   const { reload } = runs;
   useEffect(() => {
-    if (!running) return;
+    if (!running || STATIC) return;
     const t = window.setInterval(reload, POLL_MS);
     return () => window.clearInterval(t);
   }, [running, reload]);
@@ -145,7 +145,7 @@ function RunView({ run, cfgById }: { run: TuningRun; cfgById: Map<string, Harnes
             <span className={gain > 0 ? "pos-ink" : "muted"}>({pts(gain)} pts)</span>
           </span>
         )}
-        {run.status === "running" && <span className="muted">refreshing every {POLL_MS / 1000} s</span>}
+        {run.status === "running" && !STATIC && <span className="muted">refreshing every {POLL_MS / 1000} s</span>}
       </div>
 
       <div className="grid-evo">

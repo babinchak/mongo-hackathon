@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { getCases, getFunnel, postReview } from "../api";
-import { ErrorBox, FixtureNote, Loading, RichText, ScenarioTag, StatusTag, VerdictChip } from "../components/ui";
+import { getCases, getFunnel, postReview, STATIC } from "../api";
+import { ErrorBox, FixtureNote, Loading, RichText, ScenarioTag, SnapshotReadOnlyNote, StatusTag, VerdictChip } from "../components/ui";
 import { caseHref, fmtShortDate, href, useAsync } from "../lib";
 import type { CaseDoc, CasesResponse, Funnel } from "../types";
 
@@ -37,6 +37,11 @@ export default function Review({ repo }: { repo: string }) {
         </div>
       </div>
       <FixtureNote data={[funnel.data, res.data]} />
+      {STATIC && (
+        <SnapshotReadOnlyNote>
+          Approving and rejecting cases needs the local harness (pi + Atlas). This hosted page is a read-only snapshot of the review results.
+        </SnapshotReadOnlyNote>
+      )}
       {funnel.error ? (
         <ErrorBox error={funnel.error} retry={funnel.reload} />
       ) : funnel.data ? (
@@ -197,7 +202,16 @@ function ReviewCard({
         </div>
       )}
       <footer className="card-foot">
-        {c.review && !editing ? (
+        {STATIC ? (
+          c.review ? (
+            <div className="card-review">
+              <span className={`tag ${c.review.verdict === "approve" ? "status-approved" : "status-rejected"}`}>{c.review.verdict}d</span>
+              <span>{c.review.reason || <span className="muted">no reason given</span>}</span>
+            </div>
+          ) : (
+            <span className="muted small">Not reviewed in this snapshot.</span>
+          )
+        ) : c.review && !editing ? (
           <div className="card-review">
             <span className={`tag ${c.review.verdict === "approve" ? "status-approved" : "status-rejected"}`}>{c.review.verdict}d</span>
             <span>{c.review.reason || <span className="muted">no reason given</span>}</span>

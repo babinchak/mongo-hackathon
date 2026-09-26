@@ -1,6 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getCase, getConfigs, postRun } from "../api";
-import { ErrorBox, FixtureNote, KindTag, Loading, Panel, PlanText, RichText, ScenarioTag, StatusTag, VerdictChip, VerdictDot } from "../components/ui";
+import { getCase, getConfigs, postRun, STATIC } from "../api";
+import {
+  ErrorBox,
+  FixtureNote,
+  KindTag,
+  Loading,
+  Panel,
+  PlanText,
+  RichText,
+  ScenarioTag,
+  SnapshotChatNote,
+  StatusTag,
+  VerdictChip,
+  VerdictDot,
+} from "../components/ui";
 import { fmtDate, fmtDuration, fmtShortDate, fmtTime, href, isFar, isLive, momentHref, pct, shortSha, toolSummary, usd, useAsync } from "../lib";
 import type { CaseDetail, CaseDoc, HarnessConfig, MomentDoc, RunDoc, TurnDoc } from "../types";
 
@@ -118,6 +131,12 @@ function MomentPanel({ m, related }: { m: MomentDoc; related: MomentDoc[] }) {
 }
 
 function Conversation({ turns, evidence, sourceId }: { turns: TurnDoc[]; evidence: Set<string>; sourceId: string }) {
+  if (STATIC)
+    return (
+      <Panel title="Source conversation">
+        <SnapshotChatNote />
+      </Panel>
+    );
   if (!turns.length) return null;
   return (
     <Panel
@@ -311,7 +330,11 @@ function RunNow({
   const cfgDoc = usable.find((x) => x._id === cfg);
 
   return (
-    <Panel className="runnow" title="Run now" aside={<span className="muted">pi, unchanged + Atlas memory extension · live</span>}>
+    <Panel
+      className="runnow"
+      title="Run now"
+      aside={<span className="muted">pi, unchanged + Atlas memory extension{STATIC ? "" : " · live"}</span>}
+    >
       <div className="runnow-form">
         <label>
           <span>Config</span>
@@ -333,11 +356,13 @@ function RunNow({
             ))}
           </select>
         </label>
-        <button type="button" className="btn btn-primary btn-run" onClick={start} disabled={!cfg}>
+        <button type="button" className="btn btn-primary btn-run" onClick={start} disabled={!cfg || STATIC}>
           ▶ Run now
         </button>
         <div className="runnow-note muted">
-          {cfgDoc?.memory === false
+          {STATIC
+            ? "Live runs need the local harness (pi + Atlas). This hosted page is a read-only snapshot of the results."
+            : cfgDoc?.memory === false
             ? "No memory extension: pi sees only the repo snapshot."
             : `Every memory query is filtered to ts < ${cutoff ? fmtDate(cutoff.cutoff) : "cutoff"} inside Atlas.`}
         </div>
