@@ -156,6 +156,8 @@ export interface LeaderboardRow extends SliceStats {
   evidence_recall: number | null; // 0..1 (UI shows "—" for configs with memory: false)
   memory_tool_use: number | null; // 0..1
   cost_usd_per_run: number;
+  /** Share of failed runs where memory returned the gold evidence (newer backends only). */
+  retrieved_not_used?: number | null;
   by_scenario: Record<string, SliceStats>; // key: Scenario
   by_horizon: Record<string, SliceStats>; // key: horizon_days as string, e.g. "7"
 }

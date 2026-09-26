@@ -183,8 +183,8 @@ export function getLeaderboard(repoId: string | undefined): Promise<LeaderboardR
   );
 }
 
-/** GET /api/funnel?repo_id= */
-export function getFunnel(repoId: string): Promise<Funnel> {
+/** GET /api/funnel?repo_id= (all repos when repoId is undefined) */
+export function getFunnel(repoId?: string): Promise<Funnel> {
   return withFallback(
     () => http<Funnel>("GET", `/api/funnel${q({ repo_id: repoId })}`),
     async () => (await fixtures()).funnel,

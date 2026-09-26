@@ -3,6 +3,7 @@ import type { MomentKind, Scenario, ToolCall } from "./types";
 
 // ------------------------------------------------------------------ routing (hash-based)
 export type Route =
+  | { name: "overview" }
   | { name: "leaderboard" }
   | { name: "evolution" }
   | { name: "cases" }
@@ -25,8 +26,10 @@ export function parseHash(hash: string): Route {
       return { name: "timeline" };
     case "evolution":
       return { name: "evolution" };
-    default:
+    case "leaderboard":
       return { name: "leaderboard" };
+    default:
+      return { name: "overview" };
   }
 }
 

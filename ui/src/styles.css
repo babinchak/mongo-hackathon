@@ -2773,3 +2773,396 @@ kbd {
 .traj-delta.neg {
   color: var(--fail-ink);
 }
+
+/* ------------------------------------------------------------------ overview (#/overview) */
+.ov {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  --ph-ingest: var(--ink-2);
+  --ph-mine: var(--k-decision);
+  --ph-cases: var(--k-procedure);
+  --ph-eval: var(--accent);
+}
+.ov h2 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-2);
+  font-weight: 700;
+}
+.ov-hero h1 {
+  font-size: 2.3rem;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.ov-sub {
+  margin-left: 8px;
+  font-size: 1.05rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.ov-pitch {
+  margin: 8px 0 14px;
+  font-size: 1.32rem;
+  line-height: 1.4;
+  color: var(--ink-2);
+  max-width: 1180px;
+}
+.ov-pitch strong {
+  color: var(--ink);
+  font-weight: 650;
+}
+.ov-statements {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.ov-stmt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink-2);
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+.ov-stmt:hover {
+  text-decoration: none;
+  border-color: var(--line-strong);
+}
+.ov-stmt strong {
+  color: var(--ink);
+}
+.ov-stmt-n {
+  flex: none;
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+/* pipeline */
+.ov-pipe {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 16px 16px;
+}
+.ov-pipe-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+}
+.ov-phases,
+.ov-stages {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  column-gap: 16px;
+}
+.ov-phases {
+  margin-bottom: 8px;
+}
+.ov-phase {
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding-bottom: 4px;
+  border-bottom: 2px solid currentColor;
+}
+.ov-phase-ingest {
+  color: var(--ph-ingest);
+}
+.ov-phase-mine {
+  color: var(--ph-mine);
+}
+.ov-phase-cases {
+  color: var(--ph-cases);
+}
+.ov-phase-eval {
+  color: var(--ph-eval);
+}
+.ov-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ov-stage {
+  position: relative;
+  min-width: 0;
+}
+.ov-stage + .ov-stage::before {
+  content: "→";
+  position: absolute;
+  left: -16px;
+  top: 16px;
+  width: 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 1.05rem;
+}
+.ov-stage a {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px 10px 9px;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--ph);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.ov-stage a:hover {
+  text-decoration: none;
+  border-color: var(--line-strong);
+  border-top-color: var(--ph);
+  background: var(--surface-3);
+}
+.ov-stage-ingest {
+  --ph: var(--ph-ingest);
+}
+.ov-stage-mine {
+  --ph: var(--ph-mine);
+}
+.ov-stage-cases {
+  --ph: var(--ph-cases);
+}
+.ov-stage-eval {
+  --ph: var(--ph-eval);
+}
+.ov-count {
+  font-size: 1.8rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.ov-label {
+  margin-top: 2px;
+  font-weight: 650;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+.ov-note {
+  flex: 1;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.ov-tag {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--line-strong);
+  color: var(--accent-ink);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+.ov-tag > span {
+  display: block;
+  white-space: nowrap;
+}
+
+/* headline results */
+.ov-results {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  color: var(--ink);
+}
+.ov-results:hover {
+  text-decoration: none;
+}
+.ov-kpi {
+  padding: 10px 16px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--tone, var(--line-strong));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  min-width: 0;
+}
+.ov-results:hover .ov-kpi {
+  border-color: var(--line-strong);
+  border-left-color: var(--tone, var(--line-strong));
+}
+.ov-kpi-pos {
+  --tone: var(--pass);
+}
+.ov-kpi-accent {
+  --tone: var(--accent);
+}
+.ov-kpi-warn {
+  --tone: var(--error);
+}
+.ov-kpi-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 26px;
+}
+.ov-kpi-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.ov-kpi-big {
+  font-size: 2.05rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ov-kpi-from {
+  color: var(--muted);
+  font-weight: 600;
+}
+.ov-kpi-unit {
+  font-size: 0.95rem;
+  font-weight: 550;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.ov-kpi-sub {
+  font-size: 0.85rem;
+  color: var(--ink-2);
+  line-height: 1.35;
+}
+
+/* atlas + architecture */
+.ov-bottom {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 16px;
+}
+.ov-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 16px 12px;
+}
+.ov-panel h2 {
+  margin-bottom: 6px;
+}
+.ov-atlas {
+  margin: 0;
+}
+.ov-atlas-row {
+  display: grid;
+  grid-template-columns: 228px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-top: 1px solid var(--line);
+}
+.ov-atlas-row:first-child {
+  border-top: 0;
+}
+.ov-atlas dt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.95rem;
+}
+.ov-atlas dd {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+.ov-arch {
+  display: flex;
+  flex-direction: column;
+}
+.ov-node {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+.ov-node strong {
+  font-size: 0.95rem;
+}
+.ov-node span {
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: right;
+}
+.ov-node-atlas {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: var(--accent-soft);
+}
+.ov-edge {
+  position: relative;
+  padding: 3px 0 3px 34px;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--ink-2);
+}
+.ov-edge::before {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.ov-edge-down::before {
+  content: "↓";
+}
+.ov-edge-up::before {
+  content: "↑";
+}
+.ov-foot {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.ov-foot strong {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+@media (max-width: 1100px) {
+  .ov-phases {
+    display: none;
+  }
+  .ov-stages {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    row-gap: 12px;
+  }
+  .ov-stage:nth-child(4n + 1)::before {
+    display: none;
+  }
+  .ov-results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ov-bottom,
+  .ov-statements {
+    grid-template-columns: 1fr;
+  }
+}

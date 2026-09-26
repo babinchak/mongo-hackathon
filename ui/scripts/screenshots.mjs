@@ -20,6 +20,7 @@ const CHROME = [
 if (!CHROME) throw new Error("Chrome not found; set CHROME=/path/to/chrome");
 
 const routes = [
+  ["overview", "#/overview"],
   ["leaderboard", "#/leaderboard"],
   ["leaderboard-all", "#/leaderboard?repo=all"],
   ["evolution", "#/evolution"],
