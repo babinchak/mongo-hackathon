@@ -107,3 +107,39 @@ def run_now(req: RunRequest):
     if not case:
         raise HTTPException(404, "unknown case")
     return execute(case, req.config_id, req.horizon_days, repeat=-1, phase="live")
+
+
+@app.get("/api/spend")
+def get_spend():
+    return stats.spend()
+
+
+@app.get("/api/timeline")
+def get_timeline(repo_id: str):
+    sessions = list(db().sessions.find({"repo_id": repo_id}).sort("started_at", 1))
+    moments = list(db().memory.find({"repo_id": repo_id, "kind": "moment", "durable": True},
+                                    {"embedding": 0}).sort("ts", 1))
+    case_moments = {c["moment_id"] for c in db().cases.find({"repo_id": repo_id}, {"moment_id": 1})}
+    for m in moments:
+        m["has_case"] = m["_id"] in case_moments
+    return {"sessions": sessions, "moments": moments}
+
+
+@app.get("/api/moments")
+def list_moments(repo_id: str, durable: bool | None = True, kind: str | None = None, q: str | None = None,
+                 limit: int = 500):
+    """Mined moments with their source developer turn, for browsing/QA."""
+    f = {"repo_id": repo_id, "kind": "moment"}
+    if durable is not None:
+        f["durable"] = durable
+    if kind:
+        f["moment_kind"] = kind
+    if q:
+        f["text"] = {"$regex": q, "$options": "i"}
+    moments = list(db().memory.find(f, {"embedding": 0}).sort("ts", 1).limit(limit))
+    src = {t["_id"]: t for t in db().memory.find(
+        {"_id": {"$in": [m["source_turn_id"] for m in moments]}}, {"text": 1, "pushback": 1})}
+    for m in moments:
+        s = src.get(m["source_turn_id"], {})
+        m["source_text"] = s.get("text", "")[:2000]
+    return moments

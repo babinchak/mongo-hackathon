@@ -1,3 +1,4 @@
+import os
 import time
 
 from pymongo import ASCENDING
@@ -7,9 +8,9 @@ from hindsight.db import db
 
 VEC = {
     "fields": [
-        {"type": "vector", "path": "embedding", "numDimensions": 512, "similarity": "cosine"},
+        {"type": "vector", "path": "embedding", "numDimensions": int(os.environ.get("EMBED_DIMS", "1024")), "similarity": "cosine"},
         *({"type": "filter", "path": p}
-          for p in ("repo_id", "ts", "kind", "durable", "superseded_at", "noise")),
+          for p in ("repo_id", "ts", "kind", "durable", "superseded_at", "noise", "moment_kind")),
     ]
 }
 
@@ -20,6 +21,7 @@ TEXT = {
             "text": {"type": "string", "analyzer": "lucene.english"},
             "repo_id": {"type": "token"},
             "kind": {"type": "token"},
+            "moment_kind": {"type": "token"},
             "ts": {"type": "date"},
             "superseded_at": {"type": "date"},
             "durable": {"type": "boolean"},

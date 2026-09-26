@@ -17,6 +17,10 @@ PI_CLI = ROOT / "agent/node_modules/@earendil-works/pi-coding-agent/dist/bundle/
 EXTENSION = ROOT / "agent/extensions/hindsight-memory.ts"
 NO_MEMORY_CONFIGS = {"repo_only", "oracle"}
 READ_TOOLS = ["read", "grep", "find", "ls"]
+MEMORY_NUDGE = (
+    "This project has a memory of earlier agent sessions. Before planning, call search_memory "
+    "at least once with a query about the task (and again for any convention you are unsure of)."
+)
 
 
 def plan_prompt(cutoff: str | None) -> str:
@@ -44,7 +48,7 @@ def build_command(task, *, use_memory, model, extra_system, cutoff) -> list[str]
     if extra_system:
         cmd += ["--append-system-prompt", extra_system]
     if use_memory:
-        cmd += ["-e", str(EXTENSION)]
+        cmd += ["--append-system-prompt", MEMORY_NUDGE, "-e", str(EXTENSION)]
     return cmd + ["--", task]
 
 

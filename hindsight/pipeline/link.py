@@ -10,16 +10,21 @@ from hindsight.memory.search import FAR
 SYSTEM = """Two statements of project knowledge were extracted from a developer's sessions with a \
 coding agent, EARLIER and LATER. Classify their relation:
 - same: they state the same rule/fact (the developer had to repeat themselves)
-- updates: the LATER one changes or reverses the EARLIER one, so following EARLIER would now be \
-WRONG. Only use this if following the earlier statement today would be a mistake.
-- related: same topic but both remain true and independent
-- unrelated: different topics"""
+- updates: the LATER one changes or reverses the EARLIER one about the SAME thing, so following \
+EARLIER would now be WRONG. They must directly conflict: an agent could not follow both at once.
+- related: same area but both can still be followed (different aspects, different situations, \
+one adds detail or scope to the other)
+- unrelated: different topics
+
+Most pairs are related or unrelated. Be strict: first decide can_follow_both; if true, the relation \
+cannot be "updates"."""
 
 SCHEMA = {
     "type": "object",
-    "properties": {"relation": {"type": "string", "enum": ["same", "updates", "related", "unrelated"]},
+    "properties": {"can_follow_both": {"type": "boolean"},
+                   "relation": {"type": "string", "enum": ["same", "updates", "related", "unrelated"]},
                    "reason": {"type": "string"}},
-    "required": ["relation", "reason"],
+    "required": ["can_follow_both", "relation", "reason"],
     "additionalProperties": False,
 }
 
@@ -39,10 +44,11 @@ def _candidates(m, min_score=0.6, top=3):
 def _judge(m):
     out = []
     for c in _candidates(m):
-        r = chat_json(os.environ.get("LINK_MODEL", "gpt-5.4-mini"), SYSTEM,
+        r = chat_json(os.environ.get("LINK_MODEL", "gpt-6-sol"), SYSTEM,
                       f"EARLIER ({c['ts']:%Y-%m-%d}): {c['text']}\nLATER ({m['ts']:%Y-%m-%d}): {m['text']}",
                       SCHEMA, "relation")
-        out.append((c, r["relation"]))
+        rel = "related" if r["relation"] == "updates" and r["can_follow_both"] else r["relation"]
+        out.append((c, rel))
     return m, out
 
 

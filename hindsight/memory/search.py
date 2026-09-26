@@ -21,13 +21,13 @@ def _vector(qv, repo_id, cutoff, kind, k, drop_superseded, moment_kinds=None):
         f.append({"durable": True})
         if drop_superseded:
             f.append({"superseded_at": {"$gte": cutoff}})
+    if moment_kinds:
+        f.append({"moment_kind": {"$in": moment_kinds}})
     pipeline = [
         {"$vectorSearch": {"index": "memory_vec", "path": "embedding", "queryVector": qv,
                            "numCandidates": max(150, k * 20), "limit": k, "filter": {"$and": f}}},
         {"$project": {**PROJECT, "score": {"$meta": "vectorSearchScore"}}},
     ]
-    if moment_kinds:
-        pipeline.append({"$match": {"moment_kind": {"$in": moment_kinds}}})
     return list(db().memory.aggregate(pipeline))
 
 
@@ -39,6 +39,8 @@ def _text(query, repo_id, cutoff, kind, k, drop_superseded, moment_kinds=None):
         f.append({"equals": {"path": "durable", "value": True}})
         if drop_superseded:
             f.append({"range": {"path": "superseded_at", "gte": cutoff}})
+    if moment_kinds:
+        f.append({"in": {"path": "moment_kind", "value": moment_kinds}})
     pipeline = [
         {"$search": {"index": "memory_text", "compound": {
             "must": [{"text": {"query": query, "path": "text"}}],
@@ -47,8 +49,6 @@ def _text(query, repo_id, cutoff, kind, k, drop_superseded, moment_kinds=None):
         {"$limit": k},
         {"$project": {**PROJECT, "score": {"$meta": "searchScore"}}},
     ]
-    if moment_kinds:
-        pipeline.append({"$match": {"moment_kind": {"$in": moment_kinds}}})
     return list(db().memory.aggregate(pipeline))
 
 

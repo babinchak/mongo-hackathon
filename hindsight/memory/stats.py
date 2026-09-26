@@ -68,3 +68,17 @@ def funnel(repo_id: str | None = None) -> dict:
         "validated": cases.count_documents({**m, "status": {"$in": ["validated", "approved"]}}),
         "approved": cases.count_documents({**m, "status": "approved"}),
     }
+
+
+def spend() -> dict:
+    """LLM spend by stage/model (pipeline calls) plus pi run cost (from runs)."""
+    by = list(db().llm_usage.aggregate([
+        {"$group": {"_id": {"stage": "$stage", "model": "$model"}, "calls": {"$sum": 1},
+                    "cost_usd": {"$sum": "$cost_usd"}}},
+        {"$sort": {"cost_usd": -1}},
+    ]))
+    pi = next(db().runs.aggregate([{"$group": {"_id": None, "runs": {"$sum": 1}, "cost_usd": {"$sum": "$cost_usd"}}}]),
+              {"runs": 0, "cost_usd": 0.0})
+    rows = [{"stage": r["_id"]["stage"], "model": r["_id"]["model"], "calls": r["calls"], "cost_usd": r["cost_usd"]} for r in by]
+    return {"total_usd": sum(r["cost_usd"] for r in rows) + pi["cost_usd"],
+            "pi": {"runs": pi["runs"], "cost_usd": pi["cost_usd"]}, "llm": rows}
