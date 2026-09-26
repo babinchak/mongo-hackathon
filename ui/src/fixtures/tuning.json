@@ -1,0 +1,162 @@
+[
+ {
+  "_id": "tune:20260926T101500",
+  "status": "done",
+  "start": "hybrid_all",
+  "best": "tuned_20260926T101500_5",
+  "dev_cases": [
+   "c:dev0",
+   "c:dev1",
+   "c:dev2",
+   "c:dev3",
+   "c:dev4",
+   "c:dev5",
+   "c:dev6"
+  ],
+  "test_cases": [
+   "c:test0",
+   "c:test1",
+   "c:test2",
+   "c:test3",
+   "c:test4",
+   "c:test5"
+  ],
+  "steps": [
+   {
+    "config_id": "hybrid_all",
+    "config": {
+     "retrieval": "hybrid",
+     "source": "moments+turns",
+     "k": 8,
+     "briefing": false,
+     "briefing_k": null,
+     "drop_superseded": true,
+     "recency_weight": 0.0,
+     "framing": null,
+     "nudge": null
+    },
+    "hypothesis": "starting point",
+    "dev_pass_at_1": 0.333,
+    "dev_evidence_recall": 0.952,
+    "dev_runs": 21,
+    "accepted": true
+   },
+   {
+    "config_id": "tuned_20260926T101500_1",
+    "config": {
+     "retrieval": "hybrid",
+     "source": "moments+turns",
+     "k": 8,
+     "briefing": false,
+     "briefing_k": 8,
+     "drop_superseded": true,
+     "recency_weight": 0.0,
+     "framing": "rules",
+     "nudge": "search_first"
+    },
+    "hypothesis": "Memory retrieved the gold evidence in nearly every failure, yet the plan ignored it. Presenting memories as binding rules instead of notes should make the agent act on what it finds.",
+    "dev_pass_at_1": 0.429,
+    "dev_evidence_recall": 0.952,
+    "dev_runs": 21,
+    "accepted": true
+   },
+   {
+    "config_id": "tuned_20260926T101500_2",
+    "config": {
+     "retrieval": "hybrid",
+     "source": "moments+turns",
+     "k": 12,
+     "briefing": false,
+     "briefing_k": 8,
+     "drop_superseded": true,
+     "recency_weight": 0.2,
+     "framing": "rules",
+     "nudge": "search_first"
+    },
+    "hypothesis": "Some failures cite an older decision; more results with a recency boost should surface the newest guidance first.",
+    "dev_pass_at_1": 0.381,
+    "dev_evidence_recall": 0.952,
+    "dev_runs": 21,
+    "accepted": false
+   },
+   {
+    "config_id": "tuned_20260926T101500_3",
+    "config": {
+     "retrieval": "hybrid",
+     "source": "moments+turns",
+     "k": 8,
+     "briefing": false,
+     "briefing_k": 8,
+     "drop_superseded": true,
+     "recency_weight": 0.0,
+     "framing": "rules",
+     "nudge": "restate"
+    },
+    "hypothesis": "Failures still skip rules they retrieved. Requiring the agent to quote the applicable rules before its plan forces it to engage with them.",
+    "dev_pass_at_1": 0.476,
+    "dev_evidence_recall": 0.952,
+    "dev_runs": 21,
+    "accepted": true
+   },
+   {
+    "config_id": "tuned_20260926T101500_4",
+    "config": {
+     "retrieval": "hybrid",
+     "source": "moments",
+     "k": 8,
+     "briefing": false,
+     "briefing_k": 8,
+     "drop_superseded": true,
+     "recency_weight": 0.0,
+     "framing": "rules",
+     "nudge": "restate"
+    },
+    "hypothesis": "Raw turns add noise around the mined rule; moments alone should give a cleaner context.",
+    "dev_pass_at_1": 0.429,
+    "dev_evidence_recall": 0.905,
+    "dev_runs": 21,
+    "accepted": false
+   },
+   {
+    "config_id": "tuned_20260926T101500_5",
+    "config": {
+     "retrieval": "hybrid",
+     "source": "moments+turns",
+     "k": 8,
+     "briefing": true,
+     "briefing_k": 8,
+     "drop_superseded": true,
+     "recency_weight": 0.0,
+     "framing": "rules",
+     "nudge": "restate"
+    },
+    "hypothesis": "Put the relevant constraints in the system prompt up front so they are in view even when the agent's own search query misses.",
+    "dev_pass_at_1": 0.524,
+    "dev_evidence_recall": 0.952,
+    "dev_runs": 21,
+    "accepted": true
+   }
+  ],
+  "test": {
+   "repo_only": {
+    "pass_at_1": 0.0,
+    "evidence_recall": 0.0,
+    "n_runs": 18,
+    "new_runs": 0
+   },
+   "hybrid_all": {
+    "pass_at_1": 0.278,
+    "evidence_recall": 0.889,
+    "n_runs": 18,
+    "new_runs": 0
+   },
+   "tuned_20260926T101500_5": {
+    "pass_at_1": 0.444,
+    "evidence_recall": 0.889,
+    "n_runs": 18,
+    "new_runs": 18
+   }
+  },
+  "created_at": "2026-09-26T10:15:00Z"
+ }
+]

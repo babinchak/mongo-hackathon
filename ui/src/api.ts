@@ -9,11 +9,14 @@ import type {
   CaseWithSummary,
   Funnel,
   HarnessConfig,
+  JudgeAudit,
   LeaderboardRow,
   MomentDoc,
   RunDoc,
   SessionDoc,
+  Spend,
   TimelineResponse,
+  TuningRun,
   TurnDoc,
 } from "./types";
 
@@ -172,8 +175,8 @@ const q = (params: Record<string, string | undefined>) => {
   return s ? `?${s}` : "";
 };
 
-/** GET /api/leaderboard?repo_id= */
-export function getLeaderboard(repoId: string): Promise<LeaderboardRow[]> {
+/** GET /api/leaderboard?repo_id= (all repos when repoId is undefined) */
+export function getLeaderboard(repoId: string | undefined): Promise<LeaderboardRow[]> {
   return withFallback(
     () => http<LeaderboardRow[]>("GET", `/api/leaderboard${q({ repo_id: repoId })}`),
     async () => (await fixtures()).leaderboard,
@@ -322,3 +325,27 @@ export function postRun(case_id: string, config_id: string, horizon_days: number
     },
   );
 }
+
+/** GET /api/tuning → self-tuning runs, newest first. */
+export function getTuning(): Promise<TuningRun[]> {
+  return withFallback(
+    () => http<TuningRun[]>("GET", "/api/tuning"),
+    async () => structuredClone((await import("./fixtures/tuning.json")).default) as TuningRun[],
+  );
+}
+
+/** Live-only extras for page footers: undefined when forced to fixtures, offline, or not built. */
+async function optional<T>(path: string): Promise<T | undefined> {
+  if (fixturesForced()) return undefined;
+  try {
+    return await http<T>("GET", path);
+  } catch {
+    return undefined;
+  }
+}
+
+/** GET /api/judge_audit → {} until the audit has run. */
+export const getJudgeAudit = () => optional<JudgeAudit>("/api/judge_audit");
+
+/** GET /api/spend */
+export const getSpend = () => optional<Spend>("/api/spend");

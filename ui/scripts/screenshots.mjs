@@ -21,6 +21,8 @@ if (!CHROME) throw new Error("Chrome not found; set CHROME=/path/to/chrome");
 
 const routes = [
   ["leaderboard", "#/leaderboard"],
+  ["leaderboard-all", "#/leaderboard?repo=all"],
+  ["evolution", "#/evolution"],
   ["cases", "#/cases"],
   ["case", `#/cases/${encodeURIComponent("c:m:t_4c1e9a")}`],
   ["case-superseded", `#/cases/${encodeURIComponent("c:m:t_91b0d3")}`],

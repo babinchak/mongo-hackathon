@@ -10,6 +10,8 @@ def _per_case(match: dict) -> list[dict]:
         {"$group": {"_id": key, "runs": {"$sum": 1},
                     "passes": {"$sum": {"$cond": [{"$eq": ["$verdict", "pass"]}, 1, 0]}},
                     "hit_gold": {"$avg": {"$cond": ["$hit_gold", 1, 0]}},
+                    "fails": {"$sum": {"$cond": [{"$eq": ["$verdict", "fail"]}, 1, 0]}},
+                    "fails_with_gold": {"$sum": {"$cond": [{"$and": [{"$eq": ["$verdict", "fail"]}, "$hit_gold"]}, 1, 0]}},
                     "tool_use": {"$avg": {"$cond": ["$used_memory_tool", 1, 0]}},
                     "cost": {"$sum": "$cost_usd"}}},
         {"$addFields": {"pass_rate": {"$divide": ["$passes", "$runs"]},
@@ -23,7 +25,8 @@ def _rollup(group_id) -> list[dict]:
                     "k": {"$min": "$runs"}, "n_runs": {"$sum": "$runs"},
                     "pass_at_1": {"$avg": "$pass_rate"}, "pass_pow_3": {"$avg": "$all_pass"},
                     "evidence_recall": {"$avg": "$hit_gold"}, "memory_tool_use": {"$avg": "$tool_use"},
-                    "cost": {"$sum": "$cost"}}},
+                    "cost": {"$sum": "$cost"},
+                    "fails": {"$sum": "$fails"}, "fails_with_gold": {"$sum": "$fails_with_gold"}}},
         {"$set": {"n_cases": {"$size": "$cases"}}},
         {"$unset": "cases"},
     ]
@@ -50,6 +53,7 @@ def leaderboard(repo_id: str | None = None) -> list[dict]:
             "k": row["k"], "n_runs": row["n_runs"],
             "pass_at_1": row["pass_at_1"], "pass_pow_3": row["pass_pow_3"],
             "evidence_recall": row["evidence_recall"], "memory_tool_use": row["memory_tool_use"],
+            "retrieved_not_used": row["fails_with_gold"] / row["fails"] if row["fails"] else None,
             "cost_usd_per_run": row["cost"] / max(row["n_runs"], 1),
             "by_horizon": {str(r["_id"]["h"]): {"pass_at_1": r["pass_at_1"], "pass_pow_3": r["pass_pow_3"], "n_cases": r["n_cases"]}
                            for r in by_h if r["_id"]["config_id"] == cid},

@@ -4,6 +4,7 @@ import type { MomentKind, Scenario, ToolCall } from "./types";
 // ------------------------------------------------------------------ routing (hash-based)
 export type Route =
   | { name: "leaderboard" }
+  | { name: "evolution" }
   | { name: "cases" }
   | { name: "case"; id: string }
   | { name: "moments" }
@@ -22,6 +23,8 @@ export function parseHash(hash: string): Route {
       return { name: "review" };
     case "timeline":
       return { name: "timeline" };
+    case "evolution":
+      return { name: "evolution" };
     default:
       return { name: "leaderboard" };
   }
@@ -95,7 +98,23 @@ export function setHashQuery(updates: Record<string, string | undefined>, { repl
 // ------------------------------------------------------------------ repo selection
 export const REPOS = ["FSM1/cipher-box", "marcus-sa/brain", "melagiri/code-insights"] as const;
 export const DEFAULT_REPO = REPOS[0];
+/** Switcher value meaning "every repo" (leaderboard + evolution only; other pages need one repo). */
+export const ALL_REPOS = "all";
 const REPO_KEY = "hindsight.repo";
+const CONCRETE_KEY = "hindsight.repo.concrete";
+
+function stored(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/** A single repo for pages that need one: the selection, or the last single repo picked when "All repos" is on. */
+export function concreteRepo(repo: string): string {
+  return repo !== ALL_REPOS ? repo : stored(CONCRETE_KEY) || DEFAULT_REPO;
+}
 
 function storedRepo(): string | null {
   try {
@@ -118,6 +137,7 @@ export function useRepo(): string {
 export function setRepo(repo: string) {
   try {
     window.localStorage.setItem(REPO_KEY, repo);
+    if (repo !== ALL_REPOS) window.localStorage.setItem(CONCRETE_KEY, repo);
   } catch {
     /* private mode / blocked storage: the URL still carries it */
   }
@@ -220,3 +240,11 @@ export const CONFIG_SHORT: Record<string, string> = {
   oracle: "oracle",
 };
 export const isLive = (r: { phase?: string; repeat: number }) => r.phase === "live" || r.repeat < 0;
+
+/** Configs written by the self-tuning harness. */
+export const isTuned = (id: string) => id.startsWith("tuned_");
+/** "tuned_20260926T101500_3" → "tuned #3"; other ids unchanged. */
+export const configName = (id: string) => {
+  const m = /^tuned_.*_(\d+)$/.exec(id);
+  return m ? `tuned #${m[1]}` : id;
+};

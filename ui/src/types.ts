@@ -99,6 +99,12 @@ export interface HarnessConfig {
   briefing?: boolean;
   drop_superseded?: boolean;
   recency_weight?: number;
+  briefing_k?: number;
+  framing?: "notes" | "rules" | string;
+  nudge?: "none" | "search_first" | "restate" | string;
+  /** Written by the self-tuning harness (config_id "tuned_…", label "Tuned #n"). */
+  tuned?: boolean;
+  hypothesis?: string;
 }
 
 export interface ToolCall {
@@ -141,6 +147,10 @@ export interface SliceStats {
 
 export interface LeaderboardRow extends SliceStats {
   n_runs: number;
+  /** (case, cutoff) units scored. */
+  n_units?: number;
+  /** Repeats per unit behind pass_pow_3 (i.e. it is pass^k). */
+  k?: number;
   config_id: string;
   label: string;
   evidence_recall: number | null; // 0..1 (UI shows "—" for configs with memory: false)
@@ -186,4 +196,65 @@ export interface CaseDetail {
 export interface TimelineResponse {
   sessions: SessionDoc[];
   moments: MomentDoc[];
+}
+
+// ---- self-tuning harness (GET /api/tuning) ----
+
+/** The knobs the tuner may turn. Older configs may lack some (null/undefined = harness default). */
+export interface TuningKnobs {
+  retrieval?: string | null;
+  source?: string | null;
+  k?: number | null;
+  briefing?: boolean | null;
+  briefing_k?: number | null;
+  drop_superseded?: boolean | null;
+  recency_weight?: number | null;
+  framing?: string | null;
+  nudge?: string | null;
+}
+
+export interface TuningStep {
+  config_id: string;
+  config: TuningKnobs;
+  hypothesis: string;
+  dev_pass_at_1: number;
+  dev_evidence_recall: number;
+  dev_runs: number;
+  accepted: boolean;
+}
+
+export interface TuningTest {
+  pass_at_1: number;
+  evidence_recall: number;
+  n_runs: number;
+  new_runs?: number;
+}
+
+export interface TuningRun {
+  _id: string;
+  status: "running" | "done" | string;
+  start: string;
+  best: string;
+  dev_cases: string[];
+  test_cases: string[];
+  steps: TuningStep[];
+  test?: Record<string, TuningTest>;
+  created_at: ISODate;
+}
+
+// ---- GET /api/judge_audit, GET /api/spend ----
+
+export interface JudgeAudit {
+  judge?: string;
+  auditor?: string;
+  n?: number;
+  agree?: number;
+  agreement?: number;
+  disagreements?: unknown[];
+}
+
+export interface Spend {
+  total_usd: number;
+  pi: { runs: number; cost_usd: number };
+  llm: { stage: string; model: string; calls: number; cost_usd: number }[];
 }

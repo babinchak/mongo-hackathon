@@ -148,3 +148,9 @@ def list_moments(repo_id: str, durable: bool | None = True, kind: str | None = N
 @app.get("/api/judge_audit")
 def get_judge_audit():
     return db().audits.find_one({"_id": {"$regex": "^judge_audit:"}}, sort=[("created_at", -1)]) or {}
+
+
+@app.get("/api/tuning")
+def get_tuning():
+    """Self-tuning runs, newest first, with each step's config, hypothesis and dev score."""
+    return list(db().tuning.find().sort("created_at", -1).limit(10))

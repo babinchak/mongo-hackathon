@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { getApiStatus, onApiStatusChange, type ApiStatus } from "./api";
-import { href, REPOS, setRepo, useRepo, useRoute } from "./lib";
+import { ALL_REPOS, concreteRepo, href, REPOS, setRepo, useRepo, useRoute } from "./lib";
 import Leaderboard from "./views/Leaderboard";
+import Evolution from "./views/Evolution";
 import CasesList from "./views/CasesList";
 import CaseInspector from "./views/CaseInspector";
 import Moments from "./views/Moments";
@@ -10,6 +11,7 @@ import Timeline from "./views/Timeline";
 
 const NAV = [
   { path: "/leaderboard", label: "Leaderboard", match: ["leaderboard"] },
+  { path: "/evolution", label: "Evolution", match: ["evolution"] },
   { path: "/cases", label: "Cases", match: ["cases", "case"] },
   { path: "/moments", label: "Moments", match: ["moments"] },
   { path: "/review", label: "Review", match: ["review"] },
@@ -25,7 +27,10 @@ const STATUS_TEXT: Record<ApiStatus, { label: string; title: string }> = {
 
 export default function App() {
   const route = useRoute();
-  const repo = useRepo();
+  const selected = useRepo();
+  // Leaderboard can aggregate every repo; Evolution tunes across all repos; the rest need one repo.
+  const allOk = route.name === "leaderboard";
+  const repo = allOk ? selected : concreteRepo(selected);
   const [status, setStatus] = useState<ApiStatus>(getApiStatus());
   useEffect(() => onApiStatusChange(setStatus), []);
 
@@ -47,10 +52,23 @@ export default function App() {
             ))}
           </nav>
           <div className="topbar-right">
-            <label className="repo-switch" title="Repository under evaluation (applies to every page)">
+            <label
+              className="repo-switch"
+              title={
+                route.name === "evolution"
+                  ? "Self-tuning runs over the validated cases of every repo"
+                  : "Repository under evaluation (applies to every page)"
+              }
+            >
               <span className="sr-only">Repository</span>
-              <select className="mono" value={repo} onChange={(e) => setRepo(e.target.value)}>
-                {(REPOS as readonly string[]).includes(repo) ? null : <option value={repo}>{repo}</option>}
+              <select
+                className="mono"
+                value={route.name === "evolution" ? ALL_REPOS : repo}
+                disabled={route.name === "evolution"}
+                onChange={(e) => setRepo(e.target.value)}
+              >
+                {(allOk || route.name === "evolution") && <option value={ALL_REPOS}>All repos</option>}
+                {repo === ALL_REPOS || (REPOS as readonly string[]).includes(repo) ? null : <option value={repo}>{repo}</option>}
                 {REPOS.map((r) => (
                   <option key={r} value={r}>
                     {r}
@@ -66,7 +84,8 @@ export default function App() {
         </div>
       </header>
       <main className="main">
-        {route.name === "leaderboard" && <Leaderboard repo={repo} />}
+        {route.name === "leaderboard" && <Leaderboard repo={repo === ALL_REPOS ? undefined : repo} />}
+        {route.name === "evolution" && <Evolution />}
         {route.name === "cases" && <CasesList repo={repo} />}
         {route.name === "case" && <CaseInspector id={route.id} />}
         {route.name === "moments" && <Moments repo={repo} />}
