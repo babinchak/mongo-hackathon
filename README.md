@@ -12,6 +12,44 @@ bounded by the cutoff **inside Atlas**, so the agent can never see the future.
 
 MongoDB Hackathon NYC · Sept 26, 2026 · Problem statement 2: Long Horizon Engineering.
 
+## Results (pilot)
+
+Data: 3 real repos from SWE-chat (FSM1/cipher-box, marcus-sa/brain, melagiri/code-insights).
+They contain 566 sessions and 16,560 turns. From 2,654 pushback turns we mined **680 durable
+moments** and wrote 207 cases. **120** survived the chat-only filter and **47** passed validation
+(pi fails with the repo alone, passes with the evidence). We then ran 2,835 pi runs
+(gpt-6-luna) across every config × case × horizon (+1/+7/+21 days) × 3 repeats.
+
+| Harness config | pass@1 | pass^3 | evidence recall | pass@1 at +1d → +7d → +21d |
+|---|---|---|---|---|
+| Repo only (no memory) | 0.04 | 0.00 | — | 0.04 → 0.03 → 0.05 |
+| Vector · raw turns | 0.15 | 0.06 | 0.40 | 0.18 → 0.14 → 0.13 |
+| Hybrid · raw turns | 0.15 | 0.04 | 0.45 | 0.20 → 0.14 → 0.11 |
+| Hybrid · moments + turns | 0.38 | 0.18 | 0.92 | 0.40 → 0.34 → 0.40 |
+| Hybrid · moments + turns · briefing | 0.41 | 0.21 | 0.93 | 0.47 → 0.43 → 0.33 |
+| Hybrid + briefing, keep superseded | 0.44 | 0.21 | 0.93 | 0.51 → 0.40 → 0.40 |
+| **Self-tuned (round 4)**¹ | **0.72** | **0.57** | 0.89 | 0.74 → 0.72 → 0.71 |
+
+Findings:
+1. **Memory matters.** Pass@1 goes from 4% with the repo alone to 44% with Atlas memory.
+2. **Mined moments beat raw chat by about 2.7×**, mostly because retrieval recall jumps from about
+   0.4 to 0.93.
+3. **Retrieval isn't the bottleneck; use is.** About 88% of failures with moment-based memory
+   *had* the gold evidence in context.
+4. **Long-horizon decay.** Hand-designed configs lose accuracy as the gap between being told
+   something and needing it grows (e.g. 0.47 → 0.33 from +1 to +21 days).
+5. **The harness can fix this itself.** The self-tuning loop (`hindsight/pipeline/tune.py`) read
+   failures and changed *presentation*, not retrieval. It frames memory as binding rules, restates
+   the applicable rules before planning, uses moments only, briefs fewer items, and weights recent
+   ones slightly. On the **held-out test split** (later cutoffs, never used for tuning) it scores
+   **0.67 vs 0.40** for the best hand-designed config (0.04 repo-only, n=72 runs each).
+6. **Judge check.** gpt-6-astra re-graded a random 60 runs and agreed with the gpt-6-sol judge on
+   54 (90%). All 6 disagreements were sol failing plans astra would pass, so the judge errs strict.
+
+¹ The full-suite number includes the 23 dev cases the tuner optimized on. The held-out figure
+(0.67) is the honest one. The "keep superseded" vs "drop superseded" difference is within noise:
+only 3 of the 47 cases are superseded decisions.
+
 ## What was built at this event vs. what is external
 
 Everything in this repository was written during the event (see the commit history, which starts
@@ -89,7 +127,9 @@ uv run python -m hindsight.pipeline.cases --repo FSM1/cipher-box
 uv run python -m hindsight.pipeline.chat_only --repo FSM1/cipher-box
 uv run uvicorn hindsight.api:app --port 8000 &   # memory service + UI API
 uv run python -m hindsight.pipeline.validate --repo FSM1/cipher-box
-uv run python -m hindsight.pipeline.sweep
+uv run python -m hindsight.pipeline.sweep --workers 24
+uv run python -m hindsight.pipeline.tune --rounds 5 --start hybrid_all_brief
+uv run python -m hindsight.pipeline.judge_audit -n 60
 (cd ui && npm run dev)                            # http://localhost:5173
 ```
 
@@ -97,7 +137,7 @@ uv run python -m hindsight.pipeline.sweep
 
 ```text
 hindsight/ingest/      SWE-chat → Atlas
-hindsight/pipeline/    mine · refine · link · cases · chat_only · validate · sweep · evaluate (judge)
+hindsight/pipeline/    mine · refine · link · cases · chat_only · validate · sweep · evaluate (judge) · tune · judge_audit
 hindsight/memory/      cutoff-bounded search + briefing, harness configs, leaderboard/funnel aggregations
 hindsight/snapshots/   point-in-time repo exports + grep
 hindsight/runner/      headless pi runner (JSON event stream → run record)
