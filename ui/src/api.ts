@@ -13,8 +13,11 @@ import type {
   HarnessConfig,
   JudgeAudit,
   LeaderboardRow,
+  MemoryItem,
   MomentDoc,
   RunDoc,
+  RunListItem,
+  RunTrace,
   SessionDoc,
   Spend,
   TimelineResponse,
@@ -399,6 +402,63 @@ export function getTuning(): Promise<TuningRun[]> {
   return withFallback(
     () => http<TuningRun[]>("GET", "/api/tuning"),
     async () => structuredClone((await import("./fixtures/tuning.json")).default) as TuningRun[],
+  );
+}
+
+/** Runs lists per config, shared by the explorer and the trace view (prev / next). */
+const runsCache = new Map<string, Promise<RunListItem[]>>();
+
+/**
+ * GET /api/runs?config_id= → every run of one config (all repos, no response / tool_calls).
+ * Filters (repo, verdict, horizon) are applied client-side so counts stay exact in every mode.
+ * `fresh` refetches instead of reusing the cached list.
+ */
+export function getRuns(configId: string, { fresh = false } = {}): Promise<RunListItem[]> {
+  const hit = runsCache.get(configId);
+  if (hit && !fresh) return hit;
+  const p = STATIC
+    ? snap<RunListItem[]>(`runs/${caseFile(configId)}.json`)
+    : withFallback(
+        () => http<RunListItem[]>("GET", `/api/runs${q({ config_id: configId })}`),
+        async () => {
+          const db = await fixtures();
+          const cases = new Map(db.cases.map((c) => [c._id, c]));
+          return db.runs
+            .filter((r) => r.config_id === configId)
+            .map(({ response: _r, tool_calls: _t, ...r }) => {
+              const c = cases.get(r.case_id);
+              return { ...r, task: c?.task ?? "", repo_id: c?.repo_id ?? "", scenario: c?.scenario ?? "durable_constraint", n_context: r.context_ids.length };
+            });
+        },
+      );
+  runsCache.set(configId, p);
+  p.catch(() => runsCache.delete(configId));
+  return p;
+}
+
+/** GET /api/runs/:id → the run (with response + tool_calls), its case, config, and the memory pi saw. */
+export function getRun(id: string): Promise<RunTrace> {
+  if (STATIC) return snap(`run/${caseFile(id)}.json`);
+  return withFallback(
+    () => http<RunTrace>("GET", `/api/runs/${encodeURIComponent(id)}`),
+    async () => {
+      const db = await fixtures();
+      const run = db.runs.find((r) => r._id === id);
+      if (!run) throw new Error(`run ${id} not found in fixtures`);
+      const c = db.cases.find((x) => x._id === run.case_id);
+      if (!c) throw new Error(`case ${run.case_id} not found in fixtures`);
+      const gold = new Set(c.gold_evidence);
+      const moments = new Map(db.moments.map((m) => [m._id, m]));
+      const turns = new Map(db.turns.map((t) => [t._id, t]));
+      const memory: MemoryItem[] = run.context_ids.flatMap((cid): MemoryItem[] => {
+        const m = moments.get(cid);
+        if (m) return [{ id: cid, kind: "moment", ts: m.ts, text: m.text, moment_kind: m.moment_kind, topic: m.topic, is_gold: gold.has(cid) }];
+        const t = turns.get(cid);
+        if (t) return [{ id: cid, kind: "turn", ts: t.ts, text: t.text, role: t.role, is_gold: gold.has(cid) }];
+        return [];
+      });
+      return { run, case: c, config: db.configs.find((x) => x._id === run.config_id) ?? null, memory };
+    },
   );
 }
 

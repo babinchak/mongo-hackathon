@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { MomentKind, Scenario, ToolCall } from "./types";
+import type { HarnessConfig, MomentKind, RunListItem, Scenario, ToolCall } from "./types";
 
 // ------------------------------------------------------------------ routing (hash-based)
 export type Route =
@@ -10,7 +10,9 @@ export type Route =
   | { name: "case"; id: string }
   | { name: "moments" }
   | { name: "review" }
-  | { name: "timeline" };
+  | { name: "timeline" }
+  | { name: "runs" }
+  | { name: "run"; id: string };
 
 export function parseHash(hash: string): Route {
   const path = hashPath(hash);
@@ -28,6 +30,10 @@ export function parseHash(hash: string): Route {
       return { name: "evolution" };
     case "leaderboard":
       return { name: "leaderboard" };
+    case "runs":
+      return { name: "runs" };
+    case "run":
+      return parts[1] ? { name: "run", id: decodeURIComponent(parts.slice(1).join("/")) } : { name: "runs" };
     default:
       return { name: "overview" };
   }
@@ -77,6 +83,10 @@ export function href(path: string, params?: Record<string, string | undefined>):
   return `#${path}${s ? `?${s}` : ""}`;
 }
 export const caseHref = (id: string) => href(`/cases/${encodeURIComponent(id)}`);
+/** Run explorer for one config (`extra` carries list filters such as verdict / h / unused). */
+export const runsHref = (configId: string, extra?: Record<string, string | undefined>) => href("/runs", { config: configId, ...extra });
+/** Trace of one run; `extra` carries the list filters so prev / next walk the same list. */
+export const runHref = (id: string, extra?: Record<string, string | undefined>) => href(`/run/${encodeURIComponent(id)}`, extra);
 export const momentHref = (id: string, repo?: string) => href("/moments", { id, repo });
 
 /** Change query keys on the current hash (undefined deletes). `replace` avoids a history entry. */
@@ -211,23 +221,52 @@ export const KIND_LABEL: Record<MomentKind, string> = {
   none: "Untyped",
 };
 
+/** Tool paths inside the checked-out snapshot, shown relative to the repo root. */
+export const relPath = (p: string) => p.replace(/^.*?\/hindsight-snapshots\/[^/]+\/[^/]+\/?/, "") || ".";
+
 export function toolSummary(c: ToolCall): string {
   const a = c.args ?? {};
   const s = (k: string) => (typeof a[k] === "string" ? (a[k] as string) : undefined);
+  const n = (k: string) => (typeof a[k] === "number" ? (a[k] as number) : undefined);
+  const path = s("path") ?? s("file_path");
   switch (c.tool) {
     case "search_memory":
       return `“${s("query") ?? JSON.stringify(a)}”`;
-    case "read":
+    case "read": {
+      if (!path) return JSON.stringify(a);
+      const off = n("offset");
+      const lim = n("limit");
+      return off && off > 1 ? `${relPath(path)}  :${off}${lim ? `-${off + lim - 1}` : ""}` : relPath(path);
+    }
     case "ls":
-      return s("path") ?? s("file_path") ?? JSON.stringify(a);
+      return path ? relPath(path) : ".";
     case "grep":
-    case "find":
-      return [s("pattern"), s("path")].filter(Boolean).join("  in ") || JSON.stringify(a);
+    case "find": {
+      const where = [path && path !== "." ? relPath(path) : undefined, s("glob")].filter(Boolean).join(" ");
+      return [s("pattern"), where].filter(Boolean).join("  in ") || JSON.stringify(a);
+    }
     case "bash":
       return s("command") ?? JSON.stringify(a);
     default:
       return JSON.stringify(a);
   }
+}
+
+/** "FSM1/cipher-box" → "cipher-box". */
+export const repoShort = (id: string) => id.split("/").pop() ?? id;
+
+/** Human-readable knob flags for a harness config (leaderboard rows, run explorer header). */
+export function configFlags(c?: HarnessConfig | null): string[] {
+  if (!c) return [];
+  if (!c.memory) return ["no memory extension"];
+  const f = [c.retrieval ?? "", c.source ?? ""];
+  if (c.k) f.push(`k=${c.k}`);
+  if (c.briefing) f.push(c.briefing_k ? `briefing ×${c.briefing_k}` : "briefing");
+  f.push(c.drop_superseded ? "drop superseded" : "keeps superseded");
+  if (c.recency_weight) f.push(`recency ${c.recency_weight}`);
+  if (c.framing && c.framing !== "notes") f.push(`as ${c.framing}`);
+  if (c.nudge && c.nudge !== "none") f.push(`nudge: ${c.nudge.replace("_", " ")}`);
+  return f.filter(Boolean);
 }
 
 export const shortSha = (s: string | null | undefined) => (s ? s.slice(0, 7) : "-");
@@ -251,3 +290,69 @@ export const configName = (id: string) => {
   const m = /^tuned_.*_(\d+)$/.exec(id);
   return m ? `tuned #${m[1]}` : id;
 };
+
+// ------------------------------------------------------------------ run lists (explorer + trace prev / next)
+/** List filters carried in the hash query: verdict=pass|fail, unused=1, h=<days>, case=<id>; repo comes from the switcher. */
+export interface RunFilter {
+  repo?: string;
+  verdict?: "pass" | "fail";
+  /** Retrieved but not used: failed although memory returned the gold evidence. */
+  unused?: boolean;
+  h?: number;
+  caseId?: string;
+}
+
+export function readRunFilter(q: URLSearchParams, repo: string | undefined): RunFilter {
+  const v = q.get("verdict");
+  const h = Number(q.get("h"));
+  return {
+    repo: repo && repo !== ALL_REPOS ? repo : undefined,
+    verdict: v === "pass" || v === "fail" ? v : undefined,
+    unused: q.get("unused") === "1",
+    h: Number.isFinite(h) && h > 0 ? h : undefined,
+    caseId: q.get("case") || undefined,
+  };
+}
+
+/** The filter as hash params for links (repo is sticky on its own). */
+export const runFilterParams = (f: RunFilter): Record<string, string | undefined> => ({
+  verdict: f.verdict,
+  unused: f.unused ? "1" : undefined,
+  h: f.h ? String(f.h) : undefined,
+  case: f.caseId,
+});
+
+export function applyRunFilter<T extends RunListItem>(runs: T[], f: RunFilter, skip: ("verdict" | "h")[] = []): T[] {
+  return runs.filter(
+    (r) =>
+      (!f.repo || r.repo_id === f.repo) &&
+      (!f.caseId || r.case_id === f.caseId) &&
+      (skip.includes("h") || !f.h || r.horizon_days === f.h) &&
+      (skip.includes("verdict") || ((!f.verdict || r.verdict === f.verdict) && (!f.unused || (r.verdict === "fail" && r.hit_gold)))),
+  );
+}
+
+/** Stable order: repo, then case (so repeats sit together), horizon, repeat. */
+export const sortRuns = <T extends RunListItem>(runs: T[]): T[] =>
+  [...runs].sort(
+    (a, b) =>
+      a.repo_id.localeCompare(b.repo_id) ||
+      a.case_id.localeCompare(b.case_id) ||
+      a.horizon_days - b.horizon_days ||
+      a.repeat - b.repeat ||
+      String(a.created_at).localeCompare(String(b.created_at)),
+  );
+
+/** Distinctive terms from fail signals to highlight in a plan: backticked snippets and path-like tokens in them. */
+export function failTerms(signals: string[]): string[] {
+  const out = new Set<string>();
+  for (const s of signals ?? []) {
+    for (const m of s.matchAll(/`([^`]+)`/g)) {
+      const t = m[1].trim();
+      if (t.length >= 4) out.add(t);
+      const last = t.split(/\s+/).pop() ?? "";
+      if (last !== t && last.length >= 6 && /[/@.]/.test(last)) out.add(last);
+    }
+  }
+  return [...out].sort((a, b) => b.length - a.length);
+}

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { getConfigs, getJudgeAudit, getLeaderboard, getSpend } from "../api";
 import { ErrorBox, FixtureNote, Loading, Meter, Panel } from "../components/ui";
-import { configName, isTuned, pct, pts, SCENARIO_LABEL, SCENARIOS, useAsync, usd } from "../lib";
+import { configFlags, configName, isTuned, pct, pts, runsHref, SCENARIO_LABEL, SCENARIOS, useAsync, usd } from "../lib";
 import type { HarnessConfig, JudgeAudit, LeaderboardRow, SliceStats, Spend } from "../types";
 
 /** repo undefined = every repo. */
@@ -127,19 +127,6 @@ export default function Leaderboard({ repo }: { repo?: string }) {
 
 const noMemory = (r: LeaderboardRow, cfg?: HarnessConfig) => cfg?.memory === false || r.config_id === "repo_only" || r.evidence_recall == null;
 
-function configFlags(c?: HarnessConfig): string[] {
-  if (!c) return [];
-  if (!c.memory) return ["no memory extension"];
-  const f = [c.retrieval ?? "", c.source ?? ""];
-  if (c.k) f.push(`k=${c.k}`);
-  if (c.briefing) f.push(c.briefing_k ? `briefing ×${c.briefing_k}` : "briefing");
-  f.push(c.drop_superseded ? "drop superseded" : "keeps superseded");
-  if (c.recency_weight) f.push(`recency ${c.recency_weight}`);
-  if (c.framing && c.framing !== "notes") f.push(`as ${c.framing}`);
-  if (c.nudge && c.nudge !== "none") f.push(`nudge: ${c.nudge.replace("_", " ")}`);
-  return f.filter(Boolean);
-}
-
 function Row({ r, cfg, best, uniformK }: { r: LeaderboardRow; cfg?: HarnessConfig; best: boolean; uniformK: boolean }) {
   const noMem = noMemory(r, cfg);
   const tuned = isTuned(r.config_id) || cfg?.tuned;
@@ -156,8 +143,13 @@ function Row({ r, cfg, best, uniformK }: { r: LeaderboardRow; cfg?: HarnessConfi
               ✦ tuned
             </span>
           )}
-          {r.label}
+          <a className="cfg-link" href={runsHref(r.config_id)} title="Browse this config’s runs and their traces">
+            {r.label}
+          </a>
           {best && <span className="badge-best">best</span>}
+          <a className="lb-inspect" href={runsHref(r.config_id)}>
+            Inspect runs →
+          </a>
         </div>
         <div className="cfg-meta">
           <span className="mono" title={r.config_id}>
@@ -262,7 +254,8 @@ function Headlines({ rows, best, kLabel }: { rows: LeaderboardRow[]; best: Leade
       sub: (
         <>
           memory found the gold evidence in <strong>{pct(top.evidence_recall)}</strong> of runs; pi passed {pct(top.pass_at_1)}. Retrieval isn’t the
-          bottleneck.
+          bottleneck.{" "}
+          <a href={runsHref(top.config_id, { unused: "1" })}>See those runs →</a>
         </>
       ),
       pair: top.config_id,

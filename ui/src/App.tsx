@@ -9,10 +9,12 @@ import CaseInspector from "./views/CaseInspector";
 import Moments from "./views/Moments";
 import Review from "./views/Review";
 import Timeline from "./views/Timeline";
+import RunExplorer from "./views/RunExplorer";
+import RunTraceView from "./views/RunTrace";
 
 const NAV = [
   { path: "/overview", label: "Overview", match: ["overview"] },
-  { path: "/leaderboard", label: "Leaderboard", match: ["leaderboard"] },
+  { path: "/leaderboard", label: "Leaderboard", match: ["leaderboard", "runs", "run"] },
   { path: "/evolution", label: "Evolution", match: ["evolution"] },
   { path: "/cases", label: "Cases", match: ["cases", "case"] },
   { path: "/moments", label: "Moments", match: ["moments"] },
@@ -33,8 +35,8 @@ const REPO_URL = "https://github.com/babinchak/mongo-hackathon";
 export default function App() {
   const route = useRoute();
   const selected = useRepo();
-  // Leaderboard can aggregate every repo; Evolution tunes across all repos; the rest need one repo.
-  const allOk = route.name === "leaderboard";
+  // Leaderboard and the run explorer / trace can span every repo; Evolution tunes across all repos; the rest need one repo.
+  const allOk = route.name === "leaderboard" || route.name === "runs" || route.name === "run";
   const repo = allOk ? selected : concreteRepo(selected);
   // Overview and Evolution always span every repo.
   const spansAll = route.name === "overview" || route.name === "evolution";
@@ -115,6 +117,8 @@ export default function App() {
         {route.name === "moments" && <Moments repo={repo} />}
         {route.name === "review" && <Review repo={repo} />}
         {route.name === "timeline" && <Timeline repo={repo} />}
+        {route.name === "runs" && <RunExplorer repo={repo === ALL_REPOS ? undefined : repo} />}
+        {route.name === "run" && <RunTraceView id={route.id} repo={repo === ALL_REPOS ? undefined : repo} />}
       </main>
     </div>
   );

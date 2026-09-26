@@ -260,3 +260,36 @@ export interface Spend {
   pi: { runs: number; cost_usd: number };
   llm: { stage: string; model: string; calls: number; cost_usd: number }[];
 }
+
+// ---- run explorer + trace (GET /api/runs?config_id=, GET /api/runs/:id) ----
+
+/** GET /api/runs?config_id=: a run without response / tool_calls, plus its case's task and repo. */
+export interface RunListItem extends Omit<RunDoc, "response" | "tool_calls"> {
+  task: string;
+  repo_id: string;
+  scenario: Scenario;
+  /** Memory items put in front of pi (briefing + search results, pooled). */
+  n_context: number;
+}
+
+/** One item memory put in front of pi (briefing or a search_memory result). */
+export interface MemoryItem {
+  id: string;
+  kind: "moment" | "turn";
+  ts: ISODate;
+  text: string;
+  role?: "user" | "assistant" | null;
+  moment_kind?: MomentKind | null;
+  topic?: string | null;
+  is_gold: boolean;
+  /** Static snapshot only: raw chat text was dropped from turn items. */
+  redacted?: boolean;
+}
+
+/** GET /api/runs/:id */
+export interface RunTrace {
+  run: RunDoc;
+  case: Pick<CaseDoc, "_id" | "task" | "expected" | "fail_signals" | "repo_id" | "scenario" | "moment_id" | "gold_evidence">;
+  config: HarnessConfig | null;
+  memory: MemoryItem[];
+}

@@ -14,7 +14,7 @@ import {
   VerdictChip,
   VerdictDot,
 } from "../components/ui";
-import { fmtDate, fmtDuration, fmtShortDate, fmtTime, href, isFar, isLive, momentHref, pct, shortSha, toolSummary, usd, useAsync } from "../lib";
+import { failTerms, fmtDate, fmtDuration, fmtShortDate, fmtTime, href, isFar, isLive, momentHref, pct, runHref, shortSha, toolSummary, usd, useAsync } from "../lib";
 import type { CaseDetail, CaseDoc, HarnessConfig, MomentDoc, RunDoc, TurnDoc } from "../types";
 
 export default function CaseInspector({ id }: { id: string }) {
@@ -562,8 +562,11 @@ function RunRow({
   const ctx = run.context_ids ?? [];
   const nSearch = tools.filter((t) => t.tool === "search_memory").length;
   const gold = evidence ?? new Set(c.gold_evidence ?? []);
+  // Simulated fixture runs ("sim-…") have no stored trace.
+  const hasTrace = !run._id.startsWith("sim-");
   return (
     <div id={`run-${run._id}`} className={`run run-${run.verdict}${open ? " run-open" : ""}`}>
+      <div className="run-bar">
       <button type="button" className="run-summary" onClick={toggle} aria-expanded={open}>
         <VerdictChip v={run.verdict} />
         {showConfig && <span className="mono strong">{run.config_id}</span>}
@@ -583,6 +586,12 @@ function RunRow({
           {open ? "▾" : "▸"}
         </span>
       </button>
+      {hasTrace && (
+        <a className="run-trace-link" href={runHref(run._id, { case: run.case_id })} title="Full trace: memory pi saw, tool calls, plan, judge">
+          trace →
+        </a>
+      )}
+      </div>
       {open && (
         <div className="run-detail">
           <div className="run-cols">
@@ -624,7 +633,12 @@ function RunRow({
             </div>
           </div>
           <h3>Plan (final message)</h3>
-          <PlanText text={run.response} failSignals={c.fail_signals} />
+          <PlanText text={run.response} failSignals={failTerms(c.fail_signals)} />
+          {hasTrace && (
+            <p className="run-trace-more">
+              <a href={runHref(run._id, { case: run.case_id })}>Open the full trace: the memory pi saw, every tool call, the judge →</a>
+            </p>
+          )}
         </div>
       )}
     </div>

@@ -86,7 +86,7 @@ export function Panel({
   );
 }
 
-/** Renders text with `inline code` spans and optional highlighted terms (case-insensitive). */
+/** Renders text with `inline code` spans, **bold** runs and optional highlighted terms (case-insensitive). */
 export function RichText({ text, marks, markClass = "mark-fail" }: { text: string; marks?: string[]; markClass?: string }) {
   const terms = (marks ?? []).filter(Boolean);
   const re = terms.length ? new RegExp(`(${terms.map(escapeRe).join("|")})`, "gi") : null;
@@ -102,41 +102,80 @@ export function RichText({ text, marks, markClass = "mark-fail" }: { text: strin
       ),
     );
   };
-  const segs = text.split(/(`[^`\n]+`)/g);
+  const renderCode = (s: string, keyBase: string) =>
+    s.split(/(`[^`\n]+`)/g).map((seg, i) =>
+      seg.startsWith("`") && seg.endsWith("`") && seg.length > 2 ? (
+        <code key={`${keyBase}-c${i}`}>{renderMarks(seg.slice(1, -1), `${keyBase}-c${i}`)}</code>
+      ) : (
+        <Fragment key={`${keyBase}-t${i}`}>{renderMarks(seg, `${keyBase}-t${i}`)}</Fragment>
+      ),
+    );
+  // **bold** first (it may wrap `code`), then code spans inside each run.
   return (
     <>
-      {segs.map((seg, i) =>
-        seg.startsWith("`") && seg.endsWith("`") && seg.length > 2 ? (
-          <code key={i}>{renderMarks(seg.slice(1, -1), `c${i}`)}</code>
-        ) : (
-          <Fragment key={i}>{renderMarks(seg, `t${i}`)}</Fragment>
-        ),
+      {text.split(/\*\*(.+?)\*\*/g).map((part, i) =>
+        i % 2 === 1 ? <strong key={i}>{renderCode(part, `b${i}`)}</strong> : <Fragment key={i}>{renderCode(part, `p${i}`)}</Fragment>,
       )}
     </>
   );
 }
 
-/** Plan text: markdown-lite (## headings, numbered lines) with fail-signal marks. */
+/**
+ * Plan text: markdown-lite (headings, bullet and numbered lists with nesting, fenced code, `code`, **bold**)
+ * with fail-signal marks. Newlines are preserved; nothing is parsed as HTML.
+ */
 export function PlanText({ text, failSignals }: { text: string; failSignals: string[] }) {
-  if (!text.trim()) return <p className="muted">No final message.</p>;
-  return (
-    <div className="plan">
-      {text.split("\n").map((line, i) => {
-        if (/^#{1,4}\s/.test(line))
-          return (
-            <div key={i} className="plan-h">
-              {line.replace(/^#+\s/, "")}
-            </div>
-          );
-        if (!line.trim()) return <div key={i} className="plan-gap" />;
-        return (
-          <div key={i} className="plan-line">
-            <RichText text={line} marks={failSignals} />
-          </div>
-        );
-      })}
-    </div>
-  );
+  if (!text?.trim()) return <p className="muted">No final message.</p>;
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  const out: ReactNode[] = [];
+  const indentOf = (s: string) => Math.min(4, Math.floor(s.replace(/\t/g, "  ").length / 2));
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const fence = /^\s*```/.exec(line);
+    if (fence) {
+      const body: string[] = [];
+      i++;
+      while (i < lines.length && !/^\s*```/.test(lines[i])) body.push(lines[i++]);
+      out.push(
+        <pre key={i} className="plan-code">
+          {body.join("\n")}
+        </pre>,
+      );
+      continue;
+    }
+    if (/^#{1,6}\s/.test(line)) {
+      out.push(
+        <div key={i} className="plan-h">
+          <RichText text={line.replace(/^#+\s/, "")} marks={failSignals} />
+        </div>,
+      );
+      continue;
+    }
+    if (!line.trim()) {
+      out.push(<div key={i} className="plan-gap" />);
+      continue;
+    }
+    const li = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/.exec(line);
+    if (li) {
+      const ordered = /\d/.test(li[2]);
+      out.push(
+        <div key={i} className="plan-li" style={{ paddingLeft: `${indentOf(li[1]) * 1.3}em` }}>
+          <span className={`plan-marker${ordered ? " plan-marker-num" : ""}`}>{ordered ? li[2] : "•"}</span>
+          <span>
+            <RichText text={li[3]} marks={failSignals} />
+          </span>
+        </div>,
+      );
+      continue;
+    }
+    const lead = /^(\s*)/.exec(line)![1];
+    out.push(
+      <div key={i} className="plan-line" style={lead ? { paddingLeft: `${indentOf(lead) * 1.3 + 1.3}em` } : undefined}>
+        <RichText text={line.trim()} marks={failSignals} />
+      </div>,
+    );
+  }
+  return <div className="plan">{out}</div>;
 }
 
 function escapeRe(s: string) {
