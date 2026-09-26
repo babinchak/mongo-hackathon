@@ -11,6 +11,7 @@ import type {
   CaseWithSummary,
   Funnel,
   HarnessConfig,
+  HeldOut,
   JudgeAudit,
   LeaderboardRow,
   MemoryItem,
@@ -474,6 +475,9 @@ async function optional<T>(path: string): Promise<T | undefined> {
 
 /** GET /api/judge_audit → {} until the audit has run. */
 export const getJudgeAudit = () => (STATIC ? snapOptional<JudgeAudit>("judge_audit.json") : optional<JudgeAudit>("/api/judge_audit"));
+
+/** GET /api/heldout → the headline held-out comparison; undefined when missing or not built yet. */
+export const getHeldout = () => (STATIC ? snapOptional<HeldOut>("heldout.json") : optional<HeldOut>("/api/heldout"));
 
 /** GET /api/spend */
 export const getSpend = () => (STATIC ? snapOptional<Spend>("spend.json") : optional<Spend>("/api/spend"));

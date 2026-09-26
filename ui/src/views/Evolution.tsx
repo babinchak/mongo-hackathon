@@ -1,36 +1,11 @@
 import { useEffect, useState } from "react";
 import { getConfigs, getTuning, STATIC } from "../api";
+import { DevChart, DevLegend, incumbents, knobChanges, TestBars, TestLegend, testOrder } from "../components/tuning";
 import { ErrorBox, FixtureNote, Loading, Panel } from "../components/ui";
 import { configName, fmtDate, fmtTime, pct, pts, useAsync } from "../lib";
-import type { HarnessConfig, TuningKnobs, TuningRun, TuningStep } from "../types";
+import type { HarnessConfig, TuningRun, TuningStep } from "../types";
 
 const POLL_MS = 15_000;
-
-const KNOBS: { key: keyof TuningKnobs; label: string }[] = [
-  { key: "retrieval", label: "retrieval" },
-  { key: "source", label: "source" },
-  { key: "k", label: "k" },
-  { key: "briefing", label: "briefing" },
-  { key: "briefing_k", label: "briefing k" },
-  { key: "drop_superseded", label: "drop superseded" },
-  { key: "recency_weight", label: "recency" },
-  { key: "framing", label: "framing" },
-  { key: "nudge", label: "nudge" },
-];
-
-/** Harness defaults for knobs older configs don't set (hindsight/memory/search.py, runner/pi_runner.py). */
-const DEFAULTS: Partial<Record<keyof TuningKnobs, unknown>> = {
-  k: 8,
-  briefing: false,
-  briefing_k: 8,
-  drop_superseded: true,
-  recency_weight: 0,
-  framing: "notes",
-  nudge: "search_first",
-};
-const knobValue = (c: TuningKnobs | undefined, k: keyof TuningKnobs) => c?.[k] ?? DEFAULTS[k];
-const fmtKnob = (v: unknown) =>
-  v == null ? "default" : typeof v === "boolean" ? (v ? "on" : "off") : String(v).replace("_", " ");
 
 export default function Evolution() {
   const runs = useAsync(() => getTuning(), []);
@@ -104,16 +79,6 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-/** For each step, the incumbent (best accepted config) it was measured against. */
-function incumbents(steps: TuningStep[]): (TuningStep | undefined)[] {
-  let inc: TuningStep | undefined;
-  return steps.map((s, i) => {
-    const before = inc;
-    if (i === 0 || s.accepted) inc = s;
-    return before;
-  });
-}
-
 function RunView({ run, cfgById }: { run: TuningRun; cfgById: Map<string, HarnessConfig> }) {
   const steps = run.steps ?? [];
   const incs = incumbents(steps);
@@ -149,25 +114,7 @@ function RunView({ run, cfgById }: { run: TuningRun; cfgById: Map<string, Harnes
       </div>
 
       <div className="grid-evo">
-        <Panel
-          title="Dev pass@1 per step"
-          aside={
-            <div className="legend">
-              <span className="legend-item">
-                <span className="sw sw-inc" /> incumbent
-              </span>
-              <span className="legend-item">
-                <span className="dot-acc" /> accepted
-              </span>
-              <span className="legend-item">
-                <span className="dot-rej" /> rejected
-              </span>
-              <span className="legend-item">
-                <span className="sw sw-recall" /> evidence recall
-              </span>
-            </div>
-          }
-        >
+        <Panel title="Dev pass@1 per step" aside={<DevLegend />}>
           <DevChart steps={steps} running={run.status === "running"} />
         </Panel>
         <TestPanel run={run} cfgById={cfgById} />
@@ -192,79 +139,10 @@ function RunView({ run, cfgById }: { run: TuningRun; cfgById: Map<string, Harnes
   );
 }
 
-// ------------------------------------------------------------------ dev chart (SVG, one % axis)
-function DevChart({ steps, running }: { steps: TuningStep[]; running: boolean }) {
-  const W = 620,
-    H = 250,
-    L = 40,
-    R = 16,
-    T = 16,
-    B = 30;
-  const n = Math.max(steps.length + (running ? 1 : 0), 2);
-  const x = (i: number) => L + (i * (W - L - R)) / (n - 1);
-  const y = (v: number) => T + (1 - v) * (H - T - B);
-  const incs = incumbents(steps);
-  // incumbent after each step (what the next proposal must beat)
-  const incAfter = steps.map((s, i) => (i === 0 || s.accepted ? s : incs[i]!));
-  let stair = "";
-  incAfter.forEach((s, i) => {
-    stair += i === 0 ? `M${x(0)},${y(s.dev_pass_at_1)}` : `H${x(i)}V${y(s.dev_pass_at_1)}`;
-  });
-  if (steps.length) stair += `H${x(running ? steps.length : steps.length - 1)}`;
-  const recall = steps.map((s, i) => `${i ? "L" : "M"}${x(i)},${y(s.dev_evidence_recall)}`).join("");
-  const [hover, setHover] = useState<number>();
-
-  return (
-    <svg className="devchart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Dev pass@1 per tuning step with the incumbent line">
-      {[0, 0.25, 0.5, 0.75, 1].map((t) => (
-        <g key={t}>
-          <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} className={t === 0 ? "dc-base" : "dc-grid"} />
-          <text x={L - 6} y={y(t) + 4} className="dc-axis" textAnchor="end">
-            {t * 100}%
-          </text>
-        </g>
-      ))}
-      {steps.map((_, i) => (
-        <text key={i} x={x(i)} y={H - 10} className="dc-axis" textAnchor="middle">
-          {i === 0 ? "start" : `#${i}`}
-        </text>
-      ))}
-      {running && (
-        <text x={x(steps.length)} y={H - 10} className="dc-axis" textAnchor="middle">
-          …
-        </text>
-      )}
-      <path d={recall} className="dc-recall" />
-      <path d={stair} className="dc-inc" />
-      {steps.map((s, i) => {
-        const acc = i === 0 || s.accepted;
-        const inc = incs[i];
-        const d = inc ? s.dev_pass_at_1 - inc.dev_pass_at_1 : null;
-        return (
-          <g key={i} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(undefined)} className="dc-pt">
-            <circle cx={x(i)} cy={y(s.dev_pass_at_1)} r={16} className="dc-hit" />
-            <circle cx={x(i)} cy={y(s.dev_pass_at_1)} r={6} className={acc ? "dc-acc" : "dc-rej"} />
-            <text x={x(i)} y={y(s.dev_pass_at_1) + (acc ? -12 : 20)} className="dc-val" textAnchor="middle">
-              {pct(s.dev_pass_at_1)}
-            </text>
-            {hover === i && (
-              <text x={Math.min(Math.max(x(i), L + 90), W - R - 90)} y={T + 10} className="dc-tip" textAnchor="middle">
-                {configName(s.config_id)} · pass@1 {pct(s.dev_pass_at_1)}
-                {d != null ? ` (${pts(d)} vs incumbent)` : ""} · recall {pct(s.dev_evidence_recall)}
-              </text>
-            )}
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
 // ------------------------------------------------------------------ held-out test
 function TestPanel({ run, cfgById }: { run: TuningRun; cfgById: Map<string, HarnessConfig> }) {
   const test = run.test;
-  const order = [...new Set(["repo_only", run.start, run.best])].filter((c) => test?.[c]);
-  const role = (c: string) => (c === "repo_only" ? "no memory" : c === run.start && c !== run.best ? "start config" : c === run.best ? "best tuned" : "");
+  const order = testOrder(run);
   const start = test?.[run.start];
   const best = test?.[run.best];
   return (
@@ -279,47 +157,14 @@ function TestPanel({ run, cfgById }: { run: TuningRun; cfgById: Map<string, Harn
         </div>
       ) : (
         <>
-          <div className="testbars">
-            {order.map((c) => {
-              const t = test[c];
-              return (
-                <div key={c} className={`testbar${c === run.best && c !== run.start ? " testbar-best" : ""}`}>
-                  <div className="testbar-label">
-                    <span className="mono">{configName(c)}</span>
-                    <span className="muted small" title={cfgById.get(c)?.label}>
-                      {role(c)}
-                    </span>
-                  </div>
-                  <div
-                    className="gapbar"
-                    title={`pass@1 ${pct(t.pass_at_1)} · evidence recall ${pct(t.evidence_recall)} · n=${t.n_runs} runs`}
-                  >
-                    <div className="gapbar-grid" />
-                    {c !== "repo_only" && <div className="gapbar-found" style={{ width: `${t.evidence_recall * 100}%` }} />}
-                    <div className="gapbar-p3" style={{ width: `${t.pass_at_1 * 100}%` }} />
-                  </div>
-                  <div className="testbar-val">
-                    {pct(t.pass_at_1)}
-                    <span className="muted small"> n={t.n_runs}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <TestBars run={run} cfgById={cfgById} />
           {start && best && run.best !== run.start && (
             <div className={`evo-verdict ${best.pass_at_1 > start.pass_at_1 ? "pos" : "neg"}`}>
               <strong>{pts(best.pass_at_1 - start.pass_at_1)} pts</strong> test pass@1 for {configName(run.best)} over {run.start}
               {best.pass_at_1 <= start.pass_at_1 && ": the dev gain didn’t transfer"}
             </div>
           )}
-          <div className="legend small">
-            <span className="legend-item">
-              <span className="sw sw-p3" /> test pass@1
-            </span>
-            <span className="legend-item">
-              <span className="sw sw-found" /> evidence recall
-            </span>
-          </div>
+          <TestLegend />
         </>
       )}
     </Panel>
@@ -330,11 +175,7 @@ function TestPanel({ run, cfgById }: { run: TuningRun; cfgById: Map<string, Harn
 function StepCard({ step, i, inc, isBest, cfg }: { step: TuningStep; i: number; inc?: TuningStep; isBest: boolean; cfg?: HarnessConfig }) {
   const state = i === 0 ? "start" : step.accepted ? "accepted" : "rejected";
   const d = inc ? step.dev_pass_at_1 - inc.dev_pass_at_1 : null;
-  const knobs = KNOBS.map((k) => {
-    const now = fmtKnob(knobValue(step.config, k.key));
-    const was = inc ? fmtKnob(knobValue(inc.config, k.key)) : now;
-    return { ...k, now, was, changed: !!inc && now !== was };
-  });
+  const knobs = knobChanges(step, inc);
   const changed = knobs.filter((k) => k.changed);
   const same = knobs.filter((k) => !k.changed);
   return (

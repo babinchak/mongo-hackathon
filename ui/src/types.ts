@@ -244,6 +244,27 @@ export interface TuningRun {
   created_at: ISODate;
 }
 
+/** GET /api/heldout: the headline held-out comparison (later cutoffs the tuner never saw, every horizon, k repeats). */
+export interface HeldOutConfig {
+  config_id: string;
+  label: string;
+  pass_at_1: number;
+  pass_pow_k: number;
+  k: number;
+  n_runs: number;
+  n_units: number;
+  n_cases: number;
+}
+
+export interface HeldOut {
+  tuning_id: string;
+  start: string;
+  best: string;
+  n_test_cases: number;
+  /** In order: repo_only, the start config, the best tuned config. */
+  configs: HeldOutConfig[];
+}
+
 // ---- GET /api/judge_audit, GET /api/spend ----
 
 export interface JudgeAudit {
