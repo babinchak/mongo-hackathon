@@ -102,6 +102,11 @@ with superseded decisions left in).
 deterministic), evidence recall (did memory return the gold moment), memory-tool use, and cost.
 All are computed with MongoDB aggregation pipelines (`hindsight/memory/stats.py`).
 
+**Zero humans in the loop.** `uv run python -m hindsight.autopilot --repo <owner/name>` goes from
+raw agent history to a validated eval suite, a config sweep and a self-tuned harness. Cases enter the
+suite by a behavioral test (pi fails with the repo alone, passes with the evidence), and the judge is
+checked by a stronger model. The Review tab is an optional spot-check, not a gate.
+
 ## Honesty notes
 
 - Snapshots contain no `.git`, so the agent can't run `git log` to see the future. They do keep
