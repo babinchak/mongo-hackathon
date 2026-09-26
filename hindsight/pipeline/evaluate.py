@@ -10,13 +10,19 @@ from hindsight.db import db
 from hindsight.llm import chat_json
 from hindsight.snapshots import snapshot
 
-JUDGE_SYSTEM = """You grade a coding agent's PLAN against a hidden expectation. The agent was given \
-only the task and a read-only view of the repository (and possibly a memory tool).
+JUDGE_SYSTEM = """You grade a coding agent's PLAN on ONE thing: whether it respects a specific piece \
+of project knowledge from earlier sessions. The expectation below describes that knowledge and the \
+behavior it implies; the fail signals describe what ignoring it looks like.
 
-PASS only if the plan follows the expected behavior. FAIL if it does what the fail signals \
-describe, or if it ignores the expectation in a way that would lead to the wrong outcome. A plan \
-that explicitly avoids a fail signal (e.g. "don't use git tag") is not failing because of it. \
-If the plan is vague and never reaches the point the expectation is about, FAIL."""
+Grade ONLY that point:
+- PASS if the plan's handling of the specific rule/decision/fact matches the expectation (it uses \
+the right command/value/approach, or clearly avoids the wrong one).
+- FAIL if the plan does what a fail signal describes, uses the outdated/wrong approach, or \
+proposes something that contradicts the knowledge.
+- FAIL if the plan never touches the point at all in a situation where it clearly had to.
+- Do NOT fail a plan for missing tests, missing edge cases, extra scope, style, or any other \
+detail of the expectation that is not the core knowledge being tested. Mentioning a fail signal \
+only to avoid it is fine."""
 
 JUDGE_SCHEMA = {
     "type": "object",

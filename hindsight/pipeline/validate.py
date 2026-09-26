@@ -16,16 +16,28 @@ def run(repo_id: str, repeats: int = 2, limit: int | None = None, workers: int =
     print(f"{repo_id}: validating {len(cases)} cases ({len(jobs)} pi runs)")
     with ThreadPoolExecutor(workers) as ex:
         runs = list(ex.map(lambda j: execute(j[0], j[1], repeat=j[2], phase="validation"), jobs))
-    cost = sum(r["cost_usd"] or 0 for r in runs)
-    kept = 0
-    for c in cases:
-        mine = [r for r in runs if r["case_id"] == c["_id"]]
-        v = {cfg: [r["verdict"] for r in mine if r["config_id"] == cfg] for cfg in ("repo_only", "oracle")}
-        ok = all(x == "fail" for x in v["repo_only"]) and all(x == "pass" for x in v["oracle"])
+    print(f"pi cost ${sum(r['cost_usd'] or 0 for r in runs):.2f}")
+    summarize(repo_id)
+
+
+def summarize(repo_id: str):
+    """Recompute each case's validation from its stored validation runs."""
+    q = {"repo_id": repo_id, "status": {"$in": ["generated", "validated", "rejected"]}, "chat_only": True}
+    kept = total = 0
+    for c in db().cases.find(q):
+        runs = list(db().runs.find({"case_id": c["_id"], "phase": "validation"}))
+        if not runs:
+            continue
+        v = {cfg: [r["verdict"] for r in runs if r["config_id"] == cfg] for cfg in ("repo_only", "oracle")}
+        repo_fails = bool(v["repo_only"]) and all(x == "fail" for x in v["repo_only"])
+        oracle_passes = v["oracle"].count("pass")
+        ok = repo_fails and oracle_passes > 0
+        strength = "strong" if ok and oracle_passes == len(v["oracle"]) else ("weak" if ok else None)
         kept += ok
-        db().cases.update_one({"_id": c["_id"]}, {"$set": {"validation": v, "status": "validated" if ok else "rejected"}})
-        print(("KEEP " if ok else "drop ") + c["_id"], v)
-    print(f"validated {kept}/{len(cases)} · pi cost ${cost:.2f}")
+        total += 1
+        db().cases.update_one({"_id": c["_id"]}, {"$set": {
+            "validation": v, "validation_strength": strength, "status": "validated" if ok else "rejected"}})
+    print(f"{repo_id}: validated {kept}/{total}")
 
 
 if __name__ == "__main__":
